@@ -1,0 +1,14 @@
+[package]
+name = "osm-dijkstra-web"
+version = "1.0.0"
+authors = [ "Felix Buehler <account@buehler.rocks>", "Simon Matejetz <asdf@todo.de>" ]
+
+include = [
+  "README.md",
+  ".gitignore",
+  "Cargo.toml",
+  "src/*.rs"
+]
+
+[dependencies]
+osmpbfreader = "0.13.2"

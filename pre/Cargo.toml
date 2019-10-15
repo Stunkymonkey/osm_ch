@@ -1,5 +1,5 @@
 [package]
-name = "osm-dijkstra"
+name = "osm-dijkstra-pre"
 version = "1.0.0"
 authors = [ "Felix Buehler <account@buehler.rocks>", "Simon Matejetz <asdf@todo.de>" ]
 
