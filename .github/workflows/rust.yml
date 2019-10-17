@@ -15,11 +15,11 @@ jobs:
       run: |
         cd ./web/
         cargo build --verbose
-#    - name: Run pre tests
-#      run: |
-#        cd ./pre/
-#        cargo test --verbose
-#    - name: Run web tests
-#      run: |
-#        cd ./web/
-#        cargo test --verbose
+    - name: Run pre tests
+      run: |
+        cd ./pre/
+        cargo test --verbose
+    - name: Run web tests
+      run: |
+        cd ./web/
+        cargo test --verbose
