@@ -57,29 +57,37 @@ fn main() {
     let path = std::path::Path::new(&filename);
     let r = std::fs::File::open(&path).unwrap();
     let mut pbf = osmpbfreader::OsmPbfReader::new(r);
-    // first store all way-IDs (in binary heap?) that are having the "highway" tag. also store speed-limit
-    for block in pbf.blobs().map(|b| primitive_block_from_blob(&b.unwrap())) {
-        let block = block.unwrap();
-        for group in block.get_primitivegroup().iter() {
-            for way in groups::ways(&group, &block) {
-                if way.tags.contains_key("highway") {
-                    if way.tags.contains_key("maxspeed") {
-                        let _weight = parse_maxspeed(way.tags.get("maxspeed").unwrap().to_string());
-                    }
-                    // println!("{:?}", way);
-                }
+
+    // first store all way-IDs (in heap?) that are having the "highway" tag. also store speed-limit
+    for obj in pbf.par_iter().map(Result::unwrap) {
+        if obj.is_way() && obj.way().unwrap().tags.contains_key("highway") {
+            let way = obj.way().unwrap();
+            let highway = way.tags.get("highway").unwrap().to_string();
+            let mut max_speed = "".to_string();
+            if way.tags.contains_key("maxspeed") {
+                max_speed = way.tags.get("maxspeed").unwrap().to_string();
             }
+            let weight = parse_speed(max_speed, highway);
+            println!("{:?} ### {:?}", way, weight);
+            // get all node IDs from ways without duplication
+            // for node in way.nodes {
+            // have zip iterator over nodes from [0]:[1] to [n-1]:[n]
+            // println!("!!!!{:?}", node);
+            // }
         }
     }
-    // get all node IDs from ways without duplication
+    // reset pbf reader
+    pbf.rewind();
     // store all geo-information about the nodes (also save min and max of long and lat)
+
     // calculate the time of all ways
+    // create offset_table
+    // serialize everything
 
     /*
     result of this program:
         int[] source, target, weight
-        int[] offset_table
+        int[] offset_table (node id contains the index of source)
         double[] latitude, longitude
-        double max_latitude, min_latitude, max_longitude, min_longitude
     */
 }
