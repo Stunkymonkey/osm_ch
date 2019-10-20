@@ -4,14 +4,14 @@ extern crate serde;
 
 use bincode::serialize_into;
 use osmpbfreader::{groups, primitive_block_from_blob};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufWriter;
 
 // let get_type: () = var;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Debug)]
 struct Output {
     source: Vec<u32>,
     target: Vec<u32>,
@@ -82,9 +82,10 @@ fn main() {
     }
 
     // read pbf file
+    // TODO what happens if file does not exist
     let filename = std::env::args_os().nth(1).unwrap();
     let path = std::path::Path::new(&filename);
-    let r = std::fs::File::open(&path).unwrap();
+    let r = File::open(&path).unwrap();
     let mut pbf = osmpbfreader::OsmPbfReader::new(r);
 
     // for storing mapping of own-ids and osm-ids
