@@ -7,8 +7,13 @@ include = [
   "README.md",
   ".gitignore",
   "Cargo.toml",
-  "src/*.rs"
+  "src/*.rs",
+  "html/*.css",
+  "html/*.html",
+  "html/*.js"
 ]
 
 [dependencies]
-osmpbfreader = "0.13.2"
+actix-web = "1.0.8"
+serde = { version = "1.0", features = ["derive"] }
+bincode = "1.2"
