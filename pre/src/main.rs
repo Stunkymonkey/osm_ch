@@ -8,6 +8,7 @@ use serde::Serialize;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufWriter;
+use std::path::Path;
 
 // let get_type: () = var;
 
@@ -84,7 +85,7 @@ fn main() {
     // read pbf file
     // TODO what happens if file does not exist
     let filename = std::env::args_os().nth(1).unwrap();
-    let path = std::path::Path::new(&filename);
+    let path = Path::new(&filename);
     let r = File::open(&path).unwrap();
     let mut pbf = osmpbfreader::OsmPbfReader::new(r);
 
