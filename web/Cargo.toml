@@ -8,9 +8,9 @@ include = [
   ".gitignore",
   "Cargo.toml",
   "src/*.rs",
-  "html/*.css",
-  "html/*.html",
-  "html/*.js"
+  "static/*.css",
+  "static/*.html",
+  "static/*.js"
 ]
 
 [dependencies]
