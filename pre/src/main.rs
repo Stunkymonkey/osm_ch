@@ -1,13 +1,31 @@
+extern crate bincode;
 extern crate osmpbfreader;
+extern crate serde;
 
+use bincode::serialize_into;
 use osmpbfreader::{groups, primitive_block_from_blob};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fs::File;
+use std::io::BufWriter;
+
+// let get_type: () = var;
+
+#[derive(Serialize, Deserialize, Debug)]
+struct Output {
+    source: Vec<u32>,
+    target: Vec<u32>,
+    weight: Vec<u32>,
+    latitude: Vec<f32>,
+    longitude: Vec<f32>,
+    offset_table: Vec<u32>,
+}
 
 fn parse_speed(max_speed: String, highway: String) -> u32 {
     let test = max_speed.trim().parse::<u32>();
     match test {
         Ok(ok) => return ok,
-        Err(e) => {
+        Err(_e) => {
             // println!("not a decimal ({:?}): {:?}", e, max_speed);
             // TODO parsing
             return aproximate_speed(highway);
@@ -33,61 +51,148 @@ fn aproximate_speed(s: String) -> u32 {
     }
 }
 
-fn distance(lat_1: f64, long_1: f64, lat_2: f64, long_2: f64) -> f64 {
-    let r: f64 = 6371.0; // used for meters
-    let d_lat: f64 = (lat_2 - lat_1).to_radians();
-    let d_lon: f64 = (long_2 - long_1).to_radians();
-    let lat1: f64 = (lat_1).to_radians();
-    let lat2: f64 = (lat_2).to_radians();
+fn calc_distance(lat_1: f32, long_1: f32, lat_2: f32, long_2: f32) -> f32 {
+    let r: f32 = 6371.0; // constant used for meters
+    let d_lat: f32 = (lat_2 - lat_1).to_radians();
+    let d_lon: f32 = (long_2 - long_1).to_radians();
+    let lat1: f32 = (lat_1).to_radians();
+    let lat2: f32 = (lat_2).to_radians();
 
-    let a: f64 = ((d_lat / 2.0).sin()) * ((d_lat / 2.0).sin())
+    let a: f32 = ((d_lat / 2.0).sin()) * ((d_lat / 2.0).sin())
         + ((d_lon / 2.0).sin()) * ((d_lon / 2.0).sin()) * (lat1.cos()) * (lat2.cos());
-    let c: f64 = 2.0 * ((a.sqrt()).atan2((1.0 - a).sqrt()));
+    let c: f32 = 2.0 * ((a.sqrt()).atan2((1.0 - a).sqrt()));
     return r * c;
 }
 
 fn main() {
+    let mut source = Vec::<u32>::new();
+    let mut target = Vec::<u32>::new();
+    let mut weight = Vec::<u32>::new();
+    let mut latitude = Vec::<f32>::new();
+    let mut longitude = Vec::<f32>::new();
+    let mut offset_table = Vec::<u32>::new();
+
+    let mut amount_nodes = 0;
+
+    // check if arguments are right
     let args: Vec<_> = std::env::args().collect();
     if args.len() != 2 {
         println!("Usage: {} pbf_file", args[0]);
         return;
     }
 
+    // read pbf file
     let filename = std::env::args_os().nth(1).unwrap();
     let path = std::path::Path::new(&filename);
     let r = std::fs::File::open(&path).unwrap();
     let mut pbf = osmpbfreader::OsmPbfReader::new(r);
 
+    // for storing mapping of own-ids and osm-ids
+    let mut osm_id_mapping = HashMap::<i64, u32>::new();
+
     // first store all way-IDs (in heap?) that are having the "highway" tag. also store speed-limit
-    for obj in pbf.par_iter().map(Result::unwrap) {
-        if obj.is_way() && obj.way().unwrap().tags.contains_key("highway") {
-            let way = obj.way().unwrap();
-            let highway = way.tags.get("highway").unwrap().to_string();
-            let mut max_speed = "".to_string();
-            if way.tags.contains_key("maxspeed") {
-                max_speed = way.tags.get("maxspeed").unwrap().to_string();
+    for block in pbf.blobs().map(|b| primitive_block_from_blob(&b.unwrap())) {
+        let block = block.unwrap();
+        for group in block.get_primitivegroup().iter() {
+            for way in groups::ways(&group, &block) {
+                if way.tags.contains_key("highway") {
+                    let highway = way.tags.get("highway").unwrap().to_string();
+                    let mut max_speed = "".to_string();
+                    if way.tags.contains_key("maxspeed") {
+                        max_speed = way.tags.get("maxspeed").unwrap().to_string();
+                    }
+                    let speed = parse_speed(max_speed, highway);
+                    // get all node IDs from ways without duplication
+                    let mut prev_id: u32;
+                    let osm_id = way.nodes[0].0;
+                    if osm_id_mapping.contains_key(&osm_id) {
+                        prev_id = *osm_id_mapping.get(&osm_id).unwrap();
+                    } else {
+                        osm_id_mapping.insert(osm_id, amount_nodes);
+                        prev_id = amount_nodes;
+                        amount_nodes += 1;
+                    }
+                    // iterate over nodes and add them
+                    for node in way.nodes.iter().skip(1) {
+                        let osm_id = node.0;
+                        let id;
+                        if osm_id_mapping.contains_key(&osm_id) {
+                            id = *osm_id_mapping.get(&osm_id).unwrap();
+                        } else {
+                            osm_id_mapping.insert(osm_id, amount_nodes);
+                            id = amount_nodes;
+                            amount_nodes += 1;
+                        }
+                        source.push(prev_id);
+                        target.push(id);
+                        weight.push(speed);
+                        prev_id = id;
+                    }
+                }
             }
-            let weight = parse_speed(max_speed, highway);
-            println!("{:?} ### {:?}", way, weight);
-            // get all node IDs from ways without duplication
-            // for node in way.nodes {
-            // have zip iterator over nodes from [0]:[1] to [n-1]:[n]
-            // println!("!!!!{:?}", node);
-            // }
         }
     }
+
+    // resize offset_table, latitude, longitude based on amount_nodes
+    latitude.resize(amount_nodes as usize, 0.0);
+    longitude.resize(amount_nodes as usize, 0.0);
+    offset_table.resize(amount_nodes as usize, 0);
+
     // reset pbf reader
-    pbf.rewind();
-    // store all geo-information about the nodes (also save min and max of long and lat)
+    match pbf.rewind() {
+        Ok(_ok) => (),
+        Err(_e) => panic!("rewind was not successfull"),
+    }
 
-    // calculate the time of all ways
-    // create offset_table
+    // store all geo-information about the nodes
+    for block in pbf.blobs().map(|b| primitive_block_from_blob(&b.unwrap())) {
+        let block = block.unwrap();
+        for group in block.get_primitivegroup().iter() {
+            for node in groups::dense_nodes(&group, &block) {
+                let osm_id = node.id.0;
+                // check if node in osm_id_mapping
+                if osm_id_mapping.contains_key(&osm_id) {
+                    let id = *osm_id_mapping.get(&osm_id).unwrap();
+                    // then get geo infos and save
+                    // TODO check if dividing could be improved
+                    latitude[id as usize] = node.decimicro_lat as f32 / 10000000.0;
+                    longitude[id as usize] = node.decimicro_lon as f32 / 10000000.0;
+                }
+            }
+        }
+    }
+
+    let mut current_index = 0u32;
+    for i in 0..source.len() {
+        // calculate the time of all ways
+        let s = source[i];
+        let t = target[i];
+        // println!("s:{:?}\tt:{:?}\t", s, t);
+        let dist = calc_distance(
+            latitude[s as usize],
+            longitude[s as usize],
+            latitude[t as usize],
+            longitude[t as usize],
+        );
+        weight[i] = (dist / (weight[i] as f32)) as u32;
+        // creat offset_table
+        if s != current_index {
+            offset_table[s as usize] = i as u32;
+            current_index = s;
+        }
+    }
+
     // serialize everything
-
-    /*
-    result of this program:
-        int[] source, target, weight
-        int[] offset_table (node id contains the index of source)
-        double[] latitude, longitude
-    */
+    let result = Output {
+        source: source,
+        target: target,
+        weight: weight,
+        latitude: latitude,
+        longitude: longitude,
+        offset_table: offset_table,
+    };
+    let output_file = format!("{}{}", filename.into_string().unwrap(), ".fmi");
+    println!("everything gets written to {}", output_file);
+    let mut f = BufWriter::new(File::create(output_file).unwrap());
+    serialize_into(&mut f, &result).unwrap();
 }
