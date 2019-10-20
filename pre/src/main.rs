@@ -26,14 +26,49 @@ fn parse_speed(max_speed: String, highway: String) -> u32 {
     match test {
         Ok(ok) => return ok,
         Err(_e) => {
-            // println!("not a decimal ({:?}): {:?}", e, max_speed);
-            // TODO parsing
-            return aproximate_speed(highway);
+            let parsed_max_speed = resolve_max_speed(max_speed);
+            match parsed_max_speed {
+                Ok(ok) => return ok,
+                Err(_e) => {
+                    return aproximate_speed_limit(highway);
+                }
+            }
+
         }
     }
 }
 
-fn aproximate_speed(s: String) -> u32 {
+/// resolves the int value from a dirty string that can't be resolved by default parsing
+fn resolve_max_speed(s: String) -> Result<u32, String> {
+    match s.to_ascii_lowercase().trim() {
+        "de:rural" => return Ok(100),
+        "at:rural" => return Ok(100),
+        "at:urban" => return Ok(100),
+        "de:urban" => return Ok(50),
+        "30 kph" => return Ok(30),
+        "zone:maxspeed=de:30" => return Ok(30),
+        "de:zone:30" => return Ok(30),
+        "50;" => return Ok(50),
+        "50b" => return Ok(50),
+        "10 mph" => return Ok(10),
+        "de:living_street" => return Ok(30),
+        "de:motorway" => return Ok(120),
+        "5 mph" => return Ok(5),
+        "maxspeed=50" => return Ok(50),
+        "de:walk" => return Ok(3),
+        "de:zone30" => return Ok(30),
+        "cz:urban" => return Ok(30),
+        "schrittgeschwindigkeit" => return Ok(3),
+        "30 mph" => return Ok(30),
+        "20:forward" => return Ok(20),
+        "walk" => return Ok(3),
+        _ => return Err("none".to_string())
+    };
+}
+
+
+/// approximates the speed limit based on given highway type
+fn aproximate_speed_limit(s: String) -> u32 {
     match s.as_ref() {
         "motorway" => return 120,
         "motorway_link" => return 60,
@@ -47,6 +82,7 @@ fn aproximate_speed(s: String) -> u32 {
         "residential" => return 30,
         "service" => return 10,
         "living_street" => return 50,
+        "walk" => return 3,
         _ => return 50,
     }
 }
