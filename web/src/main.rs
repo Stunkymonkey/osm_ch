@@ -16,9 +16,9 @@ use std::path::Path;
 
 #[derive(Deserialize, Debug)]
 struct Input {
-    source: Vec<u32>,
     target: Vec<u32>,
     weight: Vec<u32>,
+    kind: Vec<u8>,
     latitude: Vec<f32>,
     longitude: Vec<f32>,
     offset_table: Vec<u32>,

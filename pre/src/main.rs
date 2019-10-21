@@ -14,9 +14,9 @@ use std::path::Path;
 
 #[derive(Serialize, Debug)]
 struct Output {
-    source: Vec<u32>,
     target: Vec<u32>,
     weight: Vec<u32>,
+    kind: Vec<u8>,
     latitude: Vec<f32>,
     longitude: Vec<f32>,
     offset_table: Vec<u32>,
@@ -82,23 +82,11 @@ fn aproximate_speed_limit(s: String) -> u32 {
     }
 }
 
-fn calc_distance(lat_1: f32, long_1: f32, lat_2: f32, long_2: f32) -> f32 {
-    let r: f32 = 6371.0; // constant used for meters
-    let d_lat: f32 = (lat_2 - lat_1).to_radians();
-    let d_lon: f32 = (long_2 - long_1).to_radians();
-    let lat1: f32 = (lat_1).to_radians();
-    let lat2: f32 = (lat_2).to_radians();
-
-    let a: f32 = ((d_lat / 2.0).sin()) * ((d_lat / 2.0).sin())
-        + ((d_lon / 2.0).sin()) * ((d_lon / 2.0).sin()) * (lat1.cos()) * (lat2.cos());
-    let c: f32 = 2.0 * ((a.sqrt()).atan2((1.0 - a).sqrt()));
-    return r * c;
-}
-
 fn main() {
     let mut source = Vec::<u32>::new();
     let mut target = Vec::<u32>::new();
     let mut weight = Vec::<u32>::new();
+    let mut kind = Vec::<u8>::new();
     let mut latitude = Vec::<f32>::new();
     let mut longitude = Vec::<f32>::new();
     let mut offset_table = Vec::<u32>::new();
@@ -158,6 +146,7 @@ fn main() {
                         source.push(prev_id);
                         target.push(id);
                         weight.push(speed);
+                        kind.push(1);
                         prev_id = id;
                     }
                 }
@@ -168,7 +157,7 @@ fn main() {
     // resize offset_table, latitude, longitude based on amount_nodes
     latitude.resize(amount_nodes as usize, 0.0);
     longitude.resize(amount_nodes as usize, 0.0);
-    offset_table.resize(amount_nodes as usize, 0);
+    offset_table.resize((amount_nodes + 1) as usize, 0);
 
     // reset pbf reader
     match pbf.rewind() {
@@ -196,29 +185,22 @@ fn main() {
 
     let mut current_index = 0u32;
     for i in 0..source.len() {
-        // calculate the time of all ways
         let s = source[i];
-        let t = target[i];
-        // println!("s:{:?}\tt:{:?}\t", s, t);
-        let dist = calc_distance(
-            latitude[s as usize],
-            longitude[s as usize],
-            latitude[t as usize],
-            longitude[t as usize],
-        );
-        weight[i] = (dist / (weight[i] as f32)) as u32;
         // creat offset_table
         if s != current_index {
             offset_table[s as usize] = i as u32;
             current_index = s;
         }
     }
+    // add additional last element for easier iterations later
+    offset_table[source.len()] = source.len() as u32;
+    // println!("{:?}", offset_table);
 
     // serialize everything
     let result = Output {
-        source: source,
         target: target,
         weight: weight,
+        kind: kind,
         latitude: latitude,
         longitude: longitude,
         offset_table: offset_table,
