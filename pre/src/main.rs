@@ -22,7 +22,7 @@ struct Output {
     offset_table: Vec<u32>,
 }
 
-fn parse_speed(max_speed: String, highway: String) -> u32 {
+fn parse_speed(max_speed: &str, highway: &str) -> u32 {
     match max_speed.trim().parse::<u32>() {
         Ok(ok) => return ok,
         Err(_e) => match resolve_max_speed(max_speed) {
@@ -35,36 +35,30 @@ fn parse_speed(max_speed: String, highway: String) -> u32 {
 }
 
 /// resolves the int value from a dirty string that can't be resolved by default parsing
-fn resolve_max_speed(s: String) -> Result<u32, String> {
-    match s.to_ascii_lowercase().trim() {
-        "de:rural" => return Ok(100),
-        "at:rural" => return Ok(100),
-        "at:urban" => return Ok(100),
-        "de:urban" => return Ok(50),
+fn resolve_max_speed(s: &str) -> Result<u32, &str> {
+    match s {
+        "DE:rural"|"AT:rural" => return Ok(100),
+        "DE:urban"|"AT:urban"|"CZ:urban" => return Ok(50),
+        "DE:walk"|"walk"|"Schrittgeschwindigkeit" => return Ok(7),
+        "DE:living_street" => return Ok(30),
+        "DE:motorway" => return Ok(120),
         "30 kph" => return Ok(30),
         "zone:maxspeed=de:30" => return Ok(30),
-        "de:zone:30" => return Ok(30),
-        "50;" => return Ok(50),
-        "50b" => return Ok(50),
+        "DE:zone:30" => return Ok(30),
+        "50;"|"50b" => return Ok(50),
         "10 mph" => return Ok(10),
-        "de:living_street" => return Ok(30),
-        "de:motorway" => return Ok(120),
         "5 mph" => return Ok(7),
         "maxspeed=50" => return Ok(50),
-        "de:walk" => return Ok(7),
-        "de:zone30" => return Ok(30),
-        "cz:urban" => return Ok(30),
-        "schrittgeschwindigkeit" => return Ok(7),
+        "DE:zone30" => return Ok(30),
         "30 mph" => return Ok(30),
         "20:forward" => return Ok(20),
-        "walk" => return Ok(7),
-        _ => return Err("none".to_string()),
+        _ => return Err("none"),
     };
 }
 
 /// approximates the speed limit based on given highway type
-fn aproximate_speed_limit(s: String) -> u32 {
-    match s.as_ref() {
+fn aproximate_speed_limit(s: &str) -> u32 {
+    match s {
         "motorway" => return 120,
         "motorway_link" => return 60,
         "trunk" => return 100,
@@ -119,10 +113,10 @@ fn main() {
         for group in block.get_primitivegroup().iter() {
             for way in groups::ways(&group, &block) {
                 if way.tags.contains_key("highway") {
-                    let highway = way.tags.get("highway").unwrap().to_string();
-                    let mut max_speed = "".to_string();
+                    let highway = way.tags.get("highway").unwrap().trim();
+                    let mut max_speed: &str = "";
                     if way.tags.contains_key("maxspeed") {
-                        max_speed = way.tags.get("maxspeed").unwrap().to_string();
+                        max_speed = way.tags.get("maxspeed").unwrap().trim();
                     }
                     let speed = parse_speed(max_speed, highway);
                     // get all node IDs from ways without duplication
@@ -196,7 +190,7 @@ fn main() {
         }
     }
     // add additional last element for easier iterations later
-    offset_table[source.len()] = source.len() as u32;
+    // offset_table[source.len()] = source.len() as u32;
     // println!("{:?}", offset_table);
 
     // serialize everything

@@ -15,7 +15,7 @@ use std::io::BufReader;
 use std::path::Path;
 
 #[derive(Deserialize, Debug)]
-struct Input {
+pub struct Input {
     target: Vec<u32>,
     weight: Vec<u32>,
     kind: Vec<u8>,
@@ -41,10 +41,12 @@ struct Response {
     path: Vec<Point>,
 }
 
-fn query(request: web::Json<Query>) -> web::Json<Response> {
+fn query(request: web::Json<Query>, input: web::Data<Input>) -> web::Json<Response> {
     // extract points
     let start: &Point = &request.start;
     let end: &Point = &request.end;
+    println!("Start: {},{}", start.latitude, start.longitude);
+    println!("End: {},{}", end.latitude, end.longitude);
     // search for clicked points
     let start_id: u32 = dijkstra::get_point_id(start.latitude, start.longitude);
     let end_id: u32 = dijkstra::get_point_id(end.latitude, end.longitude);
@@ -83,6 +85,7 @@ fn main() {
     // read file
     let mut f = BufReader::new(File::open(filename).unwrap());
     let input: Input = deserialize_from(&mut f).unwrap();
+    let data = web::Data::new(input);
 
     // check for static-html folder
     if !Path::new("./static").exists() {
@@ -92,14 +95,15 @@ fn main() {
 
     // start webserver
     println!("webserver started on http://localhost:8080");
-    HttpServer::new(|| {
+    HttpServer::new(move || {
         App::new()
             .wrap(middleware::Logger::default())
             .data(web::JsonConfig::default().limit(1024))
+            .register_data(data.clone())
             .service(web::resource("/dijkstra").route(web::post().to(query)))
             .service(fs::Files::new("/", "./static/").index_file("index.html"))
     })
-    .bind("127.0.0.1:8080")
+    .bind("localhost:8080")
     .unwrap()
     .run()
     .unwrap();
