@@ -1,37 +1,64 @@
-use Input;
-use std::collections::VecDeque;
+use std::collections::{VecDeque, HashSet};
 
-pub fn dijkstra(start: u32, end: u32, input: Input) -> Vec<u32> {
+use Input;
+
+pub fn dijkstra(start: u32, end: u32, input: &Input) -> Vec<u32> {
     // all distances are at max_value
-    let mut dist = vec!(u32::max_value(); input.offset_table.len());
+    let mut dist: Vec<u32> = vec!(u32::max_value(); input.offset_table.len());
     // TODO: is a hack, if node id is u32::max value this is going to break
     let mut prev = vec!(u32::max_value(); input.offset_table.len());
+    let mut evaluated: HashSet<u32> = HashSet::new();
     // add all nodes to be evaluated
-    let mut to_evaluate: Vec<u32> = input.offset_table.clone();
+    let mut to_evaluate: HashSet<u32> = HashSet::new();
+    to_evaluate.insert(start);
     // dist of start node is 0
     *dist.get_mut(start as usize).unwrap() = 0;
-    while !to_evaluate.is_empty() {
-        let min_dist_node = index_of_min_dist(&dist, &to_evaluate);
+
+    loop {
+        let min_dist_node = find_min_dist_node(&dist, &to_evaluate);
         if min_dist_node == end { break; }
-        to_evaluate.remove(min_dist_node as usize);
-        for neighbor in get_remaining_neighbors(min_dist_node,&to_evaluate, &input) {
-            let mut temp = dist[min_dist_node as usize] + get_edge_weight(start, neighbor, &input);
-            if temp < dist[neighbor as usize] {
-                dist[neighbor as usize] = temp;
-                prev[neighbor as usize] = min_dist_node;
+        let neighbors = get_remaining_neighbors(min_dist_node, &evaluated, &input);
+        // TODO: this blows up due to nodes having 3 million+ targets
+        for neighbor in &neighbors {
+            let edge_weight = get_edge_weight(min_dist_node, *neighbor, &input);
+            if edge_weight == u32::max_value() {
+                continue;
+            }
+            let mut temp = dist[min_dist_node as usize] + edge_weight;
+            if temp < dist[*neighbor as usize] {
+                dist[*neighbor as usize] = temp;
+                prev[*neighbor as usize] = min_dist_node;
+                if !evaluated.contains(&neighbor) {
+                    to_evaluate.insert(*neighbor);
+                }
             }
         }
+        &to_evaluate.remove(&min_dist_node);
+        &evaluated.insert(min_dist_node);
     }
     return get_shortest_path(end, &prev);
 }
 
-pub fn get_point_id(lat: f32, long: f32) -> u32 {
-    // calculate distance to all points and get minimum
-    return 0;
+pub fn get_point_id(lat: f32, long: f32, input: &Input) -> u32 {
+    let mut min_distance: f32 = std::f32::MAX;
+    let mut min_distance_id: u32 = 0;
+
+    for i in 1..input.offset_table.len() {
+        // TODO: should not be there, offset_table seems to be bigger than lat/lng table
+        if i >= input.latitude.len() {
+            break;
+        }
+        let distance = calc_distance(lat, long, input.latitude[i], input.longitude[i]);
+        if distance < min_distance {
+            min_distance = distance;
+            min_distance_id = i as u32;
+        }
+    }
+    return min_distance_id;
 }
 
-pub fn get_coordinates(id: u32) -> (f32, f32) {
-    return (0.0, 0.0);
+pub fn get_coordinates(id: u32, input: &Input) -> (f32, f32) {
+    return (input.latitude[id as usize], input.longitude[id as usize]);
 }
 
 fn calc_distance(lat_1: f32, long_1: f32, lat_2: f32, long_2: f32) -> f32 {
@@ -48,25 +75,25 @@ fn calc_distance(lat_1: f32, long_1: f32, lat_2: f32, long_2: f32) -> f32 {
 }
 
 /// returns index of node left in node_ids with smallest dist
-fn index_of_min_dist(dists: &Vec<u32>, node_ids: &Vec<u32>) -> u32 {
-    let mut smallest: u32 = dists[node_ids[0] as usize];
-    let mut smallest_index: u32 = node_ids[0];
+fn find_min_dist_node(dists: &Vec<u32>, node_ids: &HashSet<u32>) -> u32 {
+    let mut min_dist: u32 = u32::max_value();
+    let mut min_dist_node: u32 = 0;
     for node_id in node_ids {
-        if &dists[*node_id as usize] < &smallest {
-            smallest = dists[*node_id as usize];
-            smallest_index = *node_id;
+        if &dists[*node_id as usize] < &min_dist {
+            min_dist = dists[*node_id as usize];
+            min_dist_node = *node_id;
         }
     }
-    return smallest_index;
+    return min_dist_node;
 }
 
-/// returns all neighbors that are contained in remaining_nodes
-fn get_remaining_neighbors(node_id: u32, remaining_nodes: &Vec<u32>, input: &Input) -> Vec<u32> {
+/// returns all neighbors that were not evaluated yet TODO: offset_table has weird values
+fn get_remaining_neighbors(node_id: u32, evaluated_nodes: &HashSet<u32>, input: &Input) -> Vec<u32> {
     let first_edge = input.offset_table[node_id as usize];
     let last_edge = input.offset_table[(node_id + 1) as usize];
     let mut neighbors: Vec<u32> = Vec::new();
     for i in first_edge..last_edge {
-        if remaining_nodes.contains(&input.target[i as usize]) {
+        if !evaluated_nodes.contains(&input.target[i as usize]) {
             neighbors.push(input.target[i as usize]);
         }
     }
@@ -107,8 +134,12 @@ mod tests {
     #[test]
     fn test_find_min() {
         let vector = vec!(2, 1, 3, 4, 5);
-        let valid_ids = vec!(0, 2, 3, 4);
-        // 1 is not a valid node
-        assert_eq!(index_of_min_dist(&vector, &valid_ids), 0);
+        let mut valid_ids = HashSet::new();
+        valid_ids.insert(3);
+        valid_ids.insert(4);
+        valid_ids.insert(2);
+
+        //1 is not a valid node
+        assert_eq!(find_min_dist_node(&vector, &valid_ids), 2);
     }
 }

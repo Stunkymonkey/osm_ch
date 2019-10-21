@@ -48,8 +48,13 @@ fn query(request: web::Json<Query>, input: web::Data<Input>) -> web::Json<Respon
     println!("Start: {},{}", start.latitude, start.longitude);
     println!("End: {},{}", end.latitude, end.longitude);
     // search for clicked points
-    let start_id: u32 = dijkstra::get_point_id(start.latitude, start.longitude);
-    let end_id: u32 = dijkstra::get_point_id(end.latitude, end.longitude);
+    let start_id: u32 = dijkstra::get_point_id(start.latitude, start.longitude, &input);
+    let end_id: u32 = dijkstra::get_point_id(end.latitude, end.longitude, &input);
+    println!("Point IDs: {},{}", start_id, end_id);
+    let shortest_path: Vec<u32> = dijkstra::dijkstra(start_id, end_id, &input);
+    for entry in shortest_path {
+        print!("{} ", entry);
+    }
     // TODO start dijkstra (pass by reference? and init distance with inifite)
     // TODO save vector of nodes
     // TODO convert vector to geo points
