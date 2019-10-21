@@ -101,9 +101,12 @@ fn main() {
     }
 
     // read pbf file
-    // TODO what happens if file does not exist
     let filename = std::env::args_os().nth(1).unwrap();
     let path = Path::new(&filename);
+    if !path.exists() {
+        println!("{} not found", filename.into_string().unwrap());
+        std::process::exit(1);
+    }
     let r = File::open(&path).unwrap();
     let mut pbf = osmpbfreader::OsmPbfReader::new(r);
 
