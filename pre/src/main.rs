@@ -23,19 +23,14 @@ struct Output {
 }
 
 fn parse_speed(max_speed: String, highway: String) -> u32 {
-    let test = max_speed.trim().parse::<u32>();
-    match test {
+    match max_speed.trim().parse::<u32>() {
         Ok(ok) => return ok,
-        Err(_e) => {
-            let parsed_max_speed = resolve_max_speed(max_speed);
-            match parsed_max_speed {
-                Ok(ok) => return ok,
-                Err(_e) => {
-                    return aproximate_speed_limit(highway);
-                }
+        Err(_e) => match resolve_max_speed(max_speed) {
+            Ok(ok) => return ok,
+            Err(_e) => {
+                return aproximate_speed_limit(highway);
             }
-
-        }
+        },
     }
 }
 
@@ -63,10 +58,9 @@ fn resolve_max_speed(s: String) -> Result<u32, String> {
         "30 mph" => return Ok(30),
         "20:forward" => return Ok(20),
         "walk" => return Ok(3),
-        _ => return Err("none".to_string())
+        _ => return Err("none".to_string()),
     };
 }
-
 
 /// approximates the speed limit based on given highway type
 fn aproximate_speed_limit(s: String) -> u32 {
