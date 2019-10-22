@@ -152,8 +152,8 @@ fn main() {
     }
 
     // resize offset_table, latitude, longitude based on amount_nodes
-    latitude.resize(amount_nodes as usize, 0.0);
-    longitude.resize(amount_nodes as usize, 0.0);
+    latitude.resize((amount_nodes) as usize, 0.0);
+    longitude.resize((amount_nodes) as usize, 0.0);
     offset_table.resize((amount_nodes + 1) as usize, 0);
 
     // reset pbf reader
@@ -180,18 +180,17 @@ fn main() {
         }
     }
 
-    let mut current_index = 0u32;
-    for i in 0..source.len() {
-        let s = source[i];
-        // creat offset_table
-        if s != current_index {
-            offset_table[s as usize] = i as u32;
-            current_index = s;
-        }
-    }
+    fill_offset_table(&source, &mut offset_table);
+
     // add additional last element for easier iterations later
-    // offset_table[source.len()] = source.len() as u32;
+    offset_table[amount_nodes as usize] = (source.len() - 1) as u32;
     // println!("{:?}", offset_table);
+
+    assert_eq!(offset_table.len(), (amount_nodes + 1) as usize);
+    assert_eq!(source.len(), target.len());
+    assert_eq!(source.len(), weight.len());
+    assert_eq!(latitude.len(), longitude.len());
+    assert_eq!(latitude.len(), amount_nodes as usize);
 
     // serialize everything
     let result = Output {
@@ -206,4 +205,46 @@ fn main() {
     println!("everything gets written to {}", output_file);
     let mut f = BufWriter::new(File::create(output_file).unwrap());
     serialize_into(&mut f, &result).unwrap();
+}
+
+fn fill_offset_table(sources: &Vec<u32>, mut offset_table: &mut Vec<u32>) {
+    // initialize index 0 (if 0 is not the first node in sources this is still correct)
+    offset_table[0] = 0;
+
+    let mut last_updated_node= 0;
+    // fill rest of offset_table (from index 1)
+    let mut i: u32 = 0;
+    for node in sources.iter() {
+        if node > &last_updated_node {
+            // update all nodes that were not contained in source up to the current node_id
+            for j in (last_updated_node+1)..(node + 1) {
+                offset_table[j as usize] = i;
+            }
+            last_updated_node = *node;
+        }
+        i+=1;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    // Note this useful idiom: importing names from outer (for mod tests) scope.
+    use super::*;
+
+    #[test]
+    fn test_fill_offset_table() {
+        let mut offset_test = vec![0; 7];
+        let sources: Vec<u32> = vec![0,0,0,2,3,4,4,4,6];
+
+        fill_offset_table(&sources, &mut offset_test);
+
+        //1 is not a valid node
+        assert_eq!(offset_test[0], 0);
+        assert_eq!(offset_test[1], 3);
+        assert_eq!(offset_test[2], 3);
+        assert_eq!(offset_test[3], 4);
+        assert_eq!(offset_test[4], 5);
+        assert_eq!(offset_test[5], 8);
+        assert_eq!(offset_test[6], 8);
+    }
 }
