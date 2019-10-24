@@ -17,10 +17,10 @@ use std::path::Path;
 
 #[derive(Serialize, Debug)]
 struct Way {
-    source: u32,
-    target: u32,
-    weight: u32,
-    kind: u8,
+    source: usize,
+    target: usize,
+    weight: usize,
+    kind: usize,
 }
 
 #[derive(Serialize, Debug, Clone)]
@@ -33,11 +33,11 @@ struct Node {
 struct Output {
     ways: Vec<Way>,
     nodes: Vec<Node>,
-    offset: Vec<u32>,
+    offset: Vec<usize>,
 }
 
-fn parse_speed(max_speed: &str, highway: &str) -> u32 {
-    match max_speed.trim().parse::<u32>() {
+fn parse_speed(max_speed: &str, highway: &str) -> usize {
+    match max_speed.trim().parse::<usize>() {
         Ok(ok) => return ok,
         Err(_e) => match resolve_max_speed(max_speed) {
             Ok(ok) => return ok,
@@ -49,7 +49,7 @@ fn parse_speed(max_speed: &str, highway: &str) -> u32 {
 }
 
 /// resolves the int value from a dirty string that can't be resolved by default parsing
-fn resolve_max_speed(s: &str) -> Result<u32, &str> {
+fn resolve_max_speed(s: &str) -> Result<usize, &str> {
     match s {
         "DE:rural" | "AT:rural" => return Ok(100),
         "DE:urban" | "AT:urban" | "CZ:urban" => return Ok(50),
@@ -71,7 +71,7 @@ fn resolve_max_speed(s: &str) -> Result<u32, &str> {
 }
 
 /// approximates the speed limit based on given highway type
-fn aproximate_speed_limit(s: &str) -> u32 {
+fn aproximate_speed_limit(s: &str) -> usize {
     match s {
         "motorway" => return 120,
         "motorway_link" => return 60,
@@ -93,7 +93,7 @@ fn aproximate_speed_limit(s: &str) -> u32 {
 fn main() {
     let mut ways = Vec::<Way>::new();
     let mut nodes = Vec::<Node>::new();
-    let mut offset = Vec::<u32>::new();
+    let mut offset = Vec::<usize>::new();
 
     let mut amount_nodes = 0;
 
@@ -115,7 +115,7 @@ fn main() {
     let mut pbf = osmpbfreader::OsmPbfReader::new(r);
 
     // for storing mapping of own-ids and osm-ids
-    let mut osm_id_mapping = HashMap::<i64, u32>::new();
+    let mut osm_id_mapping = HashMap::<i64, usize>::new();
 
     // first store all way-IDs (in heap?) that are having the "highway" tag. also store speed-limit
     for block in pbf.blobs().map(|b| primitive_block_from_blob(&b.unwrap())) {
@@ -130,7 +130,7 @@ fn main() {
                     }
                     let speed = parse_speed(max_speed, highway);
                     // get all node IDs from ways without duplication
-                    let mut prev_id: u32;
+                    let mut prev_id: usize;
                     let osm_id = way.nodes[0].0;
                     if osm_id_mapping.contains_key(&osm_id) {
                         prev_id = *osm_id_mapping.get(&osm_id).unwrap();
@@ -166,13 +166,13 @@ fn main() {
 
     // resize offset, latitude, longitude based on amount_nodes
     nodes.resize(
-        (amount_nodes) as usize,
+        amount_nodes,
         Node {
             latitude: 0.0,
             longitude: 0.0,
         },
     );
-    offset.resize((amount_nodes + 1) as usize, 0);
+    offset.resize(amount_nodes + 1, 0);
 
     // reset pbf reader
     match pbf.rewind() {
@@ -204,7 +204,7 @@ fn main() {
     fill_offset(&ways, &mut offset);
 
     // add additional last element for easier iterations later
-    offset[amount_nodes as usize] = (nodes.len() - 1) as u32;
+    offset[amount_nodes] = nodes.len() - 1;
 
     // serialize everything
     let result = Output {
@@ -219,16 +219,16 @@ fn main() {
     serialize_into(&mut f, &result).unwrap();
 }
 
-fn fill_offset(ways: &Vec<Way>, offset: &mut Vec<u32>) {
-    let mut last_updated_node: u32 = 0;
+fn fill_offset(ways: &Vec<Way>, offset: &mut Vec<usize>) {
+    let mut last_updated_node: usize = 0;
     // fill rest of offset (from index 1)
-    let mut i: u32 = 0;
+    let mut i: usize = 0;
     for way in ways.iter() {
         let node = way.source;
         if node > last_updated_node {
             // update all nodes that were not contained in source up to the current node_id
             for j in (last_updated_node + 1)..(node + 1) {
-                offset[j as usize] = i;
+                offset[j] = i;
             }
             last_updated_node = node;
         }
