@@ -117,7 +117,7 @@ fn main() {
     // for storing mapping of own-ids and osm-ids
     let mut osm_id_mapping = HashMap::<i64, usize>::new();
 
-    // first store all way-IDs (in heap?) that are having the "highway" tag. also store speed-limit
+    // first store all way-IDs that are having the "highway" tag. also store speed-limit
     for block in pbf.blobs().map(|b| primitive_block_from_blob(&b.unwrap())) {
         let block = block.unwrap();
         for group in block.get_primitivegroup().iter() {
@@ -164,7 +164,7 @@ fn main() {
         }
     }
 
-    // resize offset, latitude, longitude based on amount_nodes
+    // resize offset and nodes
     nodes.resize(
         amount_nodes,
         Node {
@@ -190,7 +190,6 @@ fn main() {
                 if osm_id_mapping.contains_key(&osm_id) {
                     // let id = *osm_id_mapping.get(&osm_id).unwrap();
                     // then get geo infos and save
-                    // TODO check if dividing could be improved
                     nodes.push(Node {
                         latitude: node.decimicro_lat as f32 / 10000000.0,
                         longitude: node.decimicro_lon as f32 / 10000000.0,
@@ -202,9 +201,6 @@ fn main() {
 
     ways.sort_by(|a, b| b.source.cmp(&a.source));
     fill_offset(&ways, &mut offset);
-
-    // add additional last element for easier iterations later
-    offset[amount_nodes] = nodes.len() - 1;
 
     // serialize everything
     let result = Output {
@@ -222,16 +218,15 @@ fn main() {
 fn fill_offset(ways: &Vec<Way>, offset: &mut Vec<usize>) {
     let mut last_updated_node: usize = 0;
     // fill rest of offset (from index 1)
-    let mut i: usize = 0;
-    for way in ways.iter() {
-        let node = way.source;
-        if node > last_updated_node {
+    for (i, way) in ways.iter().enumerate() {
+        if way.source > last_updated_node {
             // update all nodes that were not contained in source up to the current node_id
-            for j in (last_updated_node + 1)..(node + 1) {
+            for j in (last_updated_node + 1)..(way.source + 1) {
                 offset[j] = i;
             }
-            last_updated_node = node;
+            last_updated_node = way.source;
         }
-        i += 1;
     }
+    // add additional last element for easier iterations later
+    *offset.last_mut().unwrap() = offset[offset.len() - 2] + 1;
 }
