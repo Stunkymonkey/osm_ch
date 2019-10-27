@@ -4,72 +4,69 @@ extern crate bincode;
 extern crate serde;
 extern crate serde_json;
 
-mod dijkstra;
+mod graph;
 
 use actix_files as fs;
 use actix_web::{middleware, web, App, HttpServer};
 use bincode::deserialize_from;
+use graph::Graph;
 use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
 
-#[derive(Deserialize, Debug)]
-pub struct Input {
-    target: Vec<u32>,
-    weight: Vec<u32>,
-    kind: Vec<u8>,
-    latitude: Vec<f32>,
-    longitude: Vec<f32>,
-    offset_table: Vec<u32>,
+#[derive(Copy, Clone, Deserialize, Debug)]
+pub struct Way {
+    source: usize,
+    target: usize,
+    weight: usize,
+    kind: usize,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-struct Point {
+#[derive(Copy, Clone, Deserialize, Serialize, Debug)]
+pub struct Node {
     latitude: f32,
     longitude: f32,
 }
 
+#[derive(Deserialize, Debug)]
+struct Input {
+    ways: Vec<Way>,
+    nodes: Vec<Node>,
+    offset: Vec<usize>,
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 struct Query {
-    start: Point,
-    end: Point,
+    start: Node,
+    end: Node,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 struct Response {
-    path: Vec<Point>,
+    path: Vec<Node>,
 }
 
-fn query(request: web::Json<Query>, input: web::Data<Input>) -> web::Json<Response> {
+fn query(request: web::Json<Query>, dijkstra: web::Data<Graph>) -> web::Json<Response> {
     // extract points
-    let start: &Point = &request.start;
-    let end: &Point = &request.end;
+    let start: &Node = &request.start;
+    let end: &Node = &request.end;
     println!("Start: {},{}", start.latitude, start.longitude);
     println!("End: {},{}", end.latitude, end.longitude);
     // search for clicked points
-    let start_id: u32 = dijkstra::get_point_id(start.latitude, start.longitude, &input);
-    let end_id: u32 = dijkstra::get_point_id(end.latitude, end.longitude, &input);
-    println!("Point IDs: {},{}", start_id, end_id);
-    let shortest_path: Vec<u32> = dijkstra::dijkstra(start_id, end_id, &input);
-    for entry in shortest_path {
-        print!("{} ", entry);
+    let start_id: usize = dijkstra.get_point_id(start.latitude, start.longitude);
+    let end_id: usize = dijkstra.get_point_id(end.latitude, end.longitude);
+    println!("Node IDs: {},{}", start_id, end_id);
+    let (path, cost) = dijkstra.find_path(start_id, end_id, 1, false).unwrap();
+    // TODO start dijkstra with start
+    // TODO start dijkstra with target
+
+    for i in path.iter() {
+        print!(" -> {}", *i);
     }
-    // TODO start dijkstra (pass by reference? and init distance with inifite)
-    // TODO save vector of nodes
-    // TODO convert vector to geo points
-    // TMP begin
-    let mut tmp_path: Vec<Point> = Vec::<Point>::new();
-    tmp_path.push(Point {
-        latitude: 11.11,
-        longitude: 22.22,
-    });
-    tmp_path.push(Point {
-        latitude: 33.33,
-        longitude: 44.44,
-    });
-    // TMP end
-    return web::Json(Response { path: tmp_path });
+    println!(" :  {}", cost);
+    let result: Vec<Node> = dijkstra.get_coordinates(path);
+    return web::Json(Response { path: result });
 }
 
 fn main() {
@@ -90,7 +87,9 @@ fn main() {
     // read file
     let mut f = BufReader::new(File::open(filename).unwrap());
     let input: Input = deserialize_from(&mut f).unwrap();
-    let data = web::Data::new(input);
+    let d = Graph::new(input.nodes, input.ways, input.offset);
+
+    let graph = web::Data::new(d);
 
     // check for static-html folder
     if !Path::new("./static").exists() {
@@ -104,7 +103,7 @@ fn main() {
         App::new()
             .wrap(middleware::Logger::default())
             .data(web::JsonConfig::default().limit(1024))
-            .register_data(data.clone())
+            .register_data(graph.clone())
             .service(web::resource("/dijkstra").route(web::post().to(query)))
             .service(fs::Files::new("/", "./static/").index_file("index.html"))
     })
