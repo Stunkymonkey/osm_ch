@@ -215,18 +215,12 @@ fn main() {
     serialize_into(&mut f, &result).unwrap();
 }
 
+/// fill offset array
 fn fill_offset(ways: &Vec<Way>, offset: &mut Vec<usize>) {
-    let mut last_updated_node: usize = 0;
-    // fill rest of offset (from index 1)
-    for (i, way) in ways.iter().enumerate() {
-        if way.source > last_updated_node {
-            // update all nodes that were not contained in source up to the current node_id
-            for j in (last_updated_node + 1)..(way.source + 1) {
-                offset[j] = i;
-            }
-            last_updated_node = way.source;
-        }
+    for way in ways {
+        offset[way.source + 1] += 1;
     }
-    // add additional last element for easier iterations later
-    *offset.last_mut().unwrap() = offset[offset.len() - 2] + 1;
+    for i in 1..offset.len() {
+        offset[i] += offset[i - 1];
+    }
 }
