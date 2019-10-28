@@ -56,9 +56,9 @@ impl Graph {
     }
 
     /// converts node ids to node-coordinates
-    pub fn get_coordinates(&self, nodes: Vec<usize>) -> Vec<Node> {
-        let mut result: Vec<Node> = Vec::with_capacity(nodes.len());
-        for (i, node) in nodes.iter().enumerate() {
+    pub fn get_coordinates(&self, path: Vec<usize>) -> Vec<Node> {
+        let mut result: Vec<Node> = Vec::with_capacity(path.len());
+        for i in 0..path.len() {
             result[i] = Node {
                 latitude: self.nodes[i].latitude,
                 longitude: self.nodes[i].longitude,
@@ -68,7 +68,7 @@ impl Graph {
     }
 
     /// returns the edge weight from source to target
-    pub fn get_edge_weight(&self, source: usize, target: usize, weight: usize) -> usize {
+    fn get_edge_weight(&self, source: usize, target: usize, weight: usize) -> usize {
         let first_edge = self.offset[source];
         let last_edge = self.offset[source + 1];
         for i in first_edge..last_edge {
@@ -84,7 +84,7 @@ impl Graph {
         &self,
         start: usize,
         end: usize,
-        kind: usize,
+        is_car: bool,
         use_distance: bool,
     ) -> Option<(Vec<usize>, usize)> {
         println!("{:?}", self.nodes.len());

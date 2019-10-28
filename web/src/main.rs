@@ -14,6 +14,7 @@ use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
+use std::time::Instant;
 
 #[derive(Copy, Clone, Deserialize, Debug)]
 pub struct Way {
@@ -40,6 +41,8 @@ struct Input {
 struct Query {
     start: Node,
     end: Node,
+    use_car: bool,
+    by_distance: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -51,21 +54,28 @@ fn query(request: web::Json<Query>, dijkstra: web::Data<Graph>) -> web::Json<Res
     // extract points
     let start: &Node = &request.start;
     let end: &Node = &request.end;
+    let use_car: bool = request.use_car;
+    let by_distance: bool = request.by_distance;
     println!("Start: {},{}", start.latitude, start.longitude);
     println!("End: {},{}", end.latitude, end.longitude);
+    println!("use_car: {}, by_distance: {}", use_car, by_distance);
+
+    // measure time
+    let timing = Instant::now();
+
     // search for clicked points
     let start_id: usize = dijkstra.get_point_id(start.latitude, start.longitude);
     let end_id: usize = dijkstra.get_point_id(end.latitude, end.longitude);
     println!("Node IDs: {},{}", start_id, end_id);
-    let (path, cost) = dijkstra.find_path(start_id, end_id, 1, false).unwrap();
-    // TODO start dijkstra with start
-    // TODO start dijkstra with target
+    println!("duration for get_point_id(): {:?}", timing.elapsed());
 
-    for i in path.iter() {
-        print!(" -> {}", *i);
-    }
-    println!(" :  {}", cost);
+    let (path, cost) = dijkstra
+        .find_path(start_id, end_id, use_car, by_distance)
+        .unwrap();
+    println!("duration for find_path(): {:?}", timing.elapsed());
+
     let result: Vec<Node> = dijkstra.get_coordinates(path);
+    println!("duration for get_coordinates(): {:?}", timing.elapsed());
     return web::Json(Response { path: result });
 }
 
