@@ -32,8 +32,8 @@ pub struct Node {
 
 #[derive(Deserialize, Debug)]
 struct Input {
-    ways: Vec<Way>,
     nodes: Vec<Node>,
+    ways: Vec<Way>,
     offset: Vec<usize>,
 }
 
@@ -66,10 +66,9 @@ fn query(request: web::Json<Query>, dijkstra: web::Data<Graph>) -> web::Json<Res
     // search for clicked points
     let start_id: usize = dijkstra.get_point_id(start.latitude, start.longitude);
     let end_id: usize = dijkstra.get_point_id(end.latitude, end.longitude);
-    println!("Node IDs: {},{}", start_id, end_id);
     println!("duration for get_point_id(): {:?}", timing.elapsed());
 
-    let (path, cost) = dijkstra
+    let (path, _cost) = dijkstra
         .find_path(start_id, end_id, use_car, by_distance)
         .unwrap();
     println!("duration for find_path(): {:?}", timing.elapsed());
