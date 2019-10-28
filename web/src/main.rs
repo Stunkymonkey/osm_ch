@@ -51,30 +51,45 @@ struct Response {
 }
 
 fn query(request: web::Json<Query>, dijkstra: web::Data<Graph>) -> web::Json<Response> {
+    let total_time = Instant::now();
     // extract points
     let start: &Node = &request.start;
     let end: &Node = &request.end;
     let use_car: bool = request.use_car;
     let by_distance: bool = request.by_distance;
-    println!("Start: {},{}", start.latitude, start.longitude);
-    println!("End: {},{}", end.latitude, end.longitude);
-    println!("use_car: {}, by_distance: {}", use_car, by_distance);
+    // println!("Start: {},{}", start.latitude, start.longitude);
+    // println!("End: {},{}", end.latitude, end.longitude);
+    // println!("use_car: {}, by_distance: {}", use_car, by_distance);
 
-    // measure time
     let timing = Instant::now();
 
     // search for clicked points
     let start_id: usize = dijkstra.get_point_id(start.latitude, start.longitude);
     let end_id: usize = dijkstra.get_point_id(end.latitude, end.longitude);
-    println!("duration for get_point_id(): {:?}", timing.elapsed());
 
-    let (path, _cost) = dijkstra
-        .find_path(start_id, end_id, use_car, by_distance)
-        .unwrap();
-    println!("duration for find_path(): {:?}", timing.elapsed());
+    println!("### duration for get_point_id(): {:?}", timing.elapsed());
 
-    let result: Vec<Node> = dijkstra.get_coordinates(path);
-    println!("duration for get_coordinates(): {:?}", timing.elapsed());
+    let timing = Instant::now();
+
+    let tmp = dijkstra.find_path(start_id, end_id, use_car, by_distance);
+    println!("### duration for find_path(): {:?}", timing.elapsed());
+
+    let result: Vec<Node>;
+    match tmp {
+        Some((path, _cost)) => {
+            let timing = Instant::now();
+
+            result = dijkstra.get_coordinates(path);
+
+            println!("### duration for get_coordinates(): {:?}", timing.elapsed());
+        }
+        None => {
+            println!("no path found");
+            result = Vec::<Node>::new();
+        }
+    }
+    println!("### answered request in: {:?}", total_time.elapsed());
+
     return web::Json(Response { path: result });
 }
 
