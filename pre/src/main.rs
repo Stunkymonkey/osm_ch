@@ -31,8 +31,8 @@ struct Node {
 
 #[derive(Serialize, Debug)]
 struct Output {
-    ways: Vec<Way>,
     nodes: Vec<Node>,
+    ways: Vec<Way>,
     offset: Vec<usize>,
 }
 
@@ -185,14 +185,15 @@ fn main() {
         let block = block.unwrap();
         for group in block.get_primitivegroup().iter() {
             for node in groups::dense_nodes(&group, &block) {
-                let osm_id = node.id.0;
                 // check if node in osm_id_mapping
-                match osm_id_mapping.get(&osm_id) {
-                    Some(our_id) => nodes[*our_id] =  Node {
-                        latitude: node.decimicro_lat as f32 / 10000000.0,
-                        longitude: node.decimicro_lon as f32 / 10000000.0,
-                    },
-                    None => continue
+                match osm_id_mapping.get(&node.id.0) {
+                    Some(our_id) => {
+                        nodes[*our_id] = Node {
+                            latitude: node.decimicro_lat as f32 / 10000000.0,
+                            longitude: node.decimicro_lon as f32 / 10000000.0,
+                        }
+                    }
+                    None => continue,
                 }
             }
         }
@@ -201,13 +202,12 @@ fn main() {
     ways.sort_by(|a, b| b.source.cmp(&a.source));
     fill_offset(&ways, &mut offset);
 
-
-    println!("Done; # ways: {}, # nodes: {}", &ways.len(), &nodes.len());
+    println!("Done; # ways: {}, # nodes: {}", ways.len(), nodes.len());
 
     // serialize everything
     let result = Output {
-        ways: ways,
         nodes: nodes,
+        ways: ways,
         offset: offset,
     };
 
