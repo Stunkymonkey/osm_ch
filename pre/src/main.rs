@@ -187,13 +187,12 @@ fn main() {
             for node in groups::dense_nodes(&group, &block) {
                 let osm_id = node.id.0;
                 // check if node in osm_id_mapping
-                if osm_id_mapping.contains_key(&osm_id) {
-                    // let id = *osm_id_mapping.get(&osm_id).unwrap();
-                    // then get geo infos and save
-                    nodes.push(Node {
+                match osm_id_mapping.get(&osm_id) {
+                    Some(our_id) => nodes[*our_id] =  Node {
                         latitude: node.decimicro_lat as f32 / 10000000.0,
                         longitude: node.decimicro_lon as f32 / 10000000.0,
-                    });
+                    },
+                    None => continue
                 }
             }
         }
@@ -201,6 +200,9 @@ fn main() {
 
     ways.sort_by(|a, b| b.source.cmp(&a.source));
     fill_offset(&ways, &mut offset);
+
+
+    println!("Done; # ways: {}, # nodes: {}", &ways.len(), &nodes.len());
 
     // serialize everything
     let result = Output {
