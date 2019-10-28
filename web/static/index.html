@@ -16,7 +16,7 @@
 				</label-big>
 				<br>
 				Lat: 12.59304
-				Lon:  57.35678
+				Lon: 57.35678
 			</div>
 			<div class="input-wrapper">
 				<label-big for="end-time">
@@ -24,7 +24,7 @@
 				</label-big>
 				<br>
 				Lat: 9.324234
-				Lon:  52.324234
+				Lon: 52.324234
 			</div>
 			<div class="input-wrapper">
 				<label-big for="end-time">
@@ -47,6 +47,7 @@
 			<button class="info-button search" onclick="query()">Find Path</button>
 		</div>
 		<div id="map"></div>
+		<div class="toast" id="invalid-request" style="display:none" onclick="hide_invalid_request()">Invalid Request</div>
 		<script src="leaflet_script.js"></script>
 	</body>
 </html>

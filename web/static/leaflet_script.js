@@ -35,6 +35,7 @@ function onMapClick(e) {
 		}
 		endMarker.setLatLng(e.latlng);
 		endMarker.bindPopup("End<br>" + e.latlng).openPopup();
+		document.getElementById("invalid-request").style.display = "none";
 		xhr.open("POST", 'http://localhost:8080/dijkstra', true);
 		xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
 		xhr.send(
@@ -51,10 +52,18 @@ function onMapClick(e) {
 				"by_distance" : true,
 			})
 		);
+		document.getElementById("invalid-request").style.display = "block";
 	}
 }
 
 map.on('click', onMapClick);
+
+function hide_invalid_request() {
+	var x = document.getElementById("invalid-request");
+	if (x.style.display === "block") {
+		x.style.display = "none";
+	}
+}
 
 var greenIcon = new L.Icon({
   iconUrl: 'img/marker-green.png',
