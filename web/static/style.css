@@ -23,7 +23,6 @@ body {
 	width: 220px;
 	z-index: 1000;
 }
-
 #info h4 {
 	margin: 0 0 0;
 }
@@ -48,13 +47,29 @@ body {
 
 .search {
 	display: block;
-	background-color: #2b5696;
+	background-color: #2B5696;
 	color: white;
 	border-style: none;
 	border-radius: 3px;
 	padding: 5px 10px;
 	margin-top: 0.8em;
 	width: 100%;
+}
+
+.set-point {
+	color: white;
+	border-style: none;
+	border-radius: 3px;
+	padding: 5px 10px;
+}
+
+.set-start {
+	background-color: #2AAD27;
+	margin-right: 0.8em;
+}
+
+.set-end {
+	background-color: #CB2B3E;
 }
 
 label{
