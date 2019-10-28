@@ -57,14 +57,8 @@ impl Graph {
 
     /// converts node ids to node-coordinates
     pub fn get_coordinates(&self, path: Vec<usize>) -> Vec<Node> {
-        let mut result: Vec<Node> = Vec::with_capacity(path.len());
-        for i in 0..path.len() {
-            result[i] = Node {
-                latitude: self.nodes[i].latitude,
-                longitude: self.nodes[i].longitude,
-            };
-        }
-        return result;
+        println!("now getting coords");
+        return path.iter().map(|x| self.nodes[*x]).collect::<Vec<Node>>();
     }
 
     /// returns the edge weight from source to target
@@ -157,13 +151,3 @@ fn calc_distance(lat_1: f32, long_1: f32, lat_2: f32, long_2: f32) -> f32 {
     let c: f32 = 2.0 * ((a.sqrt()).atan2((1.0 - a).sqrt()));
     return r * c;
 }
-
-/* just notes from felix:
-pub fn dijkstra(usize: start) {}
-pub fn find_way(usize: goal) -> List<usize> {}
-fn get_shortest_path(target: usize, visited: &Vec<usize>) -> Vec<usize> {}
-pub fn edgesToNodes(edges: Vec<usize>) -> Vec<usize> {}
-pub fn getDistance(goal: usize) -> usize {}
-pub fn setStart(start: usize) -> bool {}
-pub fn initDistanceTable() {}
-*/
