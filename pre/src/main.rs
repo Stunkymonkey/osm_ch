@@ -199,10 +199,8 @@ fn main() {
         }
     }
 
-    ways.sort_by(|a, b| b.source.cmp(&a.source));
+    ways.sort_by(|a, b| a.source.cmp(&b.source));
     fill_offset(&ways, &mut offset);
-
-    println!("Done; # ways: {}, # nodes: {}", ways.len(), nodes.len());
 
     // serialize everything
     let result = Output {
