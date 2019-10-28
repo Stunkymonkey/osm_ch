@@ -1,21 +1,52 @@
 <!DOCTYPE html>
 <html lang="en">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.5.1/dist/leaflet.css"
-    integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ=="
-    crossorigin=""/>
-<script src="https://unpkg.com/leaflet@1.5.1/dist/leaflet.js"
-    integrity="sha512-GffPMF3RvMeYyc1LWMHtK8EbPv0iNZ8/oTtHPx9/cc2ILxQ+u905qIwdpULaqDkyBKgOaB57QTMg7ztg8Jm2Og=="
-    crossorigin=""></script>
-<link href="style.css" rel="stylesheet">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>osm-dijkstra</title>
-</head>
-<body>
-
-<div id="map"></div>
-
-<script src="leaflet_script.js"></script>
-</body>
+	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.5.1/dist/leaflet.css" integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ==" crossorigin=""/>
+	<script src="https://unpkg.com/leaflet@1.5.1/dist/leaflet.js" integrity="sha512-GffPMF3RvMeYyc1LWMHtK8EbPv0iNZ8/oTtHPx9/cc2ILxQ+u905qIwdpULaqDkyBKgOaB57QTMg7ztg8Jm2Og==" crossorigin=""></script>
+	<link href="style.css" rel="stylesheet">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>osm-dijkstra</title>
+	</head>
+	<body>
+		<div id="info">
+			<div class="input-wrapper">
+				<label-big for="start-time">
+					<h4>Start</h4>
+				</label-big>
+				<br>
+				Lat: 12.59304
+				Lon:  57.35678
+			</div>
+			<div class="input-wrapper">
+				<label-big for="end-time">
+					<h4>End:</h4>
+				</label-big>
+				<br>
+				Lat: 9.324234
+				Lon:  52.324234
+			</div>
+			<div class="input-wrapper">
+				<label-big for="end-time">
+					<h4>Travel by</h4>
+				</label-big>
+				<select id="visual">
+					<option value="timeline">car</option>
+					<option value="heatmap">foot</option>
+				</select>
+			</div>
+			<div class="input-wrapper">
+				<label-big for="end-time">
+					<h4>Optimize for</h4>
+				</label-big>
+				<select id="visual">
+					<option value="timeline">time</option>
+					<option value="heatmap">distance</option>
+				</select>
+			</div>
+			<button class="info-button search" onclick="query()">Find Path</button>
+		</div>
+		<div id="map"></div>
+		<script src="leaflet_script.js"></script>
+	</body>
 </html>
