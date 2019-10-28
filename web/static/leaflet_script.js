@@ -1,11 +1,15 @@
-var map = L.map('map').setView([51.1657, 10.4515], 6);
+var map = L.map('map', {
+	maxBounds: [
+	    [47.3, 5.9], // Southwest coordinates
+	    [54.9, 16.9512215]  // Northeast coordinates
+	],}).setView([51.1657, 10.4515], 6);
 L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
 	attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
 	maxZoom: 18,
+	minZoom: 6,
 	id: 'mapbox.streets',
 	accessToken: 'pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw'
 }).addTo(map);
-
 
 let startPoint;
 let startMarker;
@@ -31,19 +35,52 @@ function onMapClick(e) {
 		}
 		endMarker.setLatLng(e.latlng);
 		endMarker.bindPopup("End<br>" + e.latlng).openPopup();
+		document.getElementById("invalid-request").style.display = "none";
 		xhr.open("POST", 'http://localhost:8080/dijkstra', true);
 		xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-		xhr.send(JSON.stringify({
-			"start":
-				{	"latitude": startPoint.lat,
+		xhr.send(
+			JSON.stringify({
+				"start":{
+					"latitude": startPoint.lat,
 					"longitude": startPoint.lng
 				},
-			"end":
-				{	"latitude": endPoint.lat,
+				"end":{
+					"latitude": endPoint.lat,
 					"longitude": endPoint.lng
-			}
-		}));
+				},
+				"use_car" : true,
+				"by_distance" : true,
+			})
+		);
+		document.getElementById("invalid-request").style.display = "block";
 	}
 }
 
 map.on('click', onMapClick);
+
+function hide_invalid_request() {
+	var x = document.getElementById("invalid-request");
+	if (x.style.display === "block") {
+		x.style.display = "none";
+	}
+}
+
+var greenIcon = new L.Icon({
+  iconUrl: 'img/marker-green.png',
+  shadowUrl: 'img/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
+var redIcon = new L.Icon({
+  iconUrl: 'img/marker-red.png',
+  shadowUrl: 'img/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
+
+L.marker([52.12, 10.57], {icon: greenIcon}).addTo(map);
+L.marker([50.68, 9.21], {icon: redIcon}).addTo(map);

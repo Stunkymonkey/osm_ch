@@ -56,9 +56,9 @@ impl Graph {
     }
 
     /// converts node ids to node-coordinates
-    pub fn get_coordinates(&self, nodes: Vec<usize>) -> Vec<Node> {
-        let mut result: Vec<Node> = Vec::with_capacity(nodes.len());
-        for (i, node) in nodes.iter().enumerate() {
+    pub fn get_coordinates(&self, path: Vec<usize>) -> Vec<Node> {
+        let mut result: Vec<Node> = Vec::with_capacity(path.len());
+        for i in 0..path.len() {
             result[i] = Node {
                 latitude: self.nodes[i].latitude,
                 longitude: self.nodes[i].longitude,
@@ -68,15 +68,24 @@ impl Graph {
     }
 
     /// returns the edge weight from source to target
-    pub fn get_edge_weight(&self, source: usize, target: usize, weight: usize) -> usize {
-        let first_edge = self.offset[source];
-        let last_edge = self.offset[source + 1];
-        for i in first_edge..last_edge {
-            if self.ways[i].target == target {
-                return self.ways[i].weight;
-            }
+    fn get_edge_weight(
+        &self,
+        source: usize,
+        target: usize,
+        weight: usize,
+        use_distance: bool,
+    ) -> usize {
+        let distance = calc_distance(
+            self.nodes[source].latitude,
+            self.nodes[source].longitude,
+            self.nodes[target].latitude,
+            self.nodes[target].longitude,
+        );
+        if use_distance {
+            return distance.ceil() as usize;
+        } else {
+            return (distance / weight as f32) as usize;
         }
-        return usize::max_value();
     }
 
     /// executes dijkstra
@@ -84,10 +93,9 @@ impl Graph {
         &self,
         start: usize,
         end: usize,
-        kind: usize,
+        is_car: bool,
         use_distance: bool,
     ) -> Option<(Vec<usize>, usize)> {
-        println!("{:?}", self.nodes.len());
         let mut dist = vec![(usize::MAX, None); self.nodes.len()];
 
         let mut heap = BinaryHeap::new();
@@ -115,11 +123,16 @@ impl Graph {
             }
             for edge in self.offset[node]..self.offset[node + 1] {
                 let current_way: Way = self.ways[edge];
+                // TODO check if should skip due to is_car
                 let next = State {
                     node: current_way.target,
-                    // TODO get new costs here
-                    // kind, use_distance
-                    cost: cost + current_way.weight,
+                    cost: cost
+                        + self.get_edge_weight(
+                            current_way.source,
+                            current_way.target,
+                            current_way.weight,
+                            use_distance,
+                        ),
                 };
                 if next.cost < dist[next.node].0 {
                     dist[next.node] = (next.cost, Some(node));
