@@ -30,24 +30,26 @@
 				<label-big for="end-time">
 					<h4>Travel by</h4>
 				</label-big>
-				<select id="visual">
-					<option value="timeline">car</option>
-					<option value="heatmap">foot</option>
+				<select id="travel-type">
+					<option value="car">car</option>
+					<option value="foot">foot</option>
 				</select>
 			</div>
 			<div class="input-wrapper">
 				<label-big for="end-time">
 					<h4>Optimize for</h4>
 				</label-big>
-				<select id="visual">
-					<option value="timeline">time</option>
-					<option value="heatmap">distance</option>
+				<select id="optimization">
+					<option value="time">time</option>
+					<option value="distance">distance</option>
 				</select>
 			</div>
 			<button class="info-button search" onclick="query()">Find Path</button>
 		</div>
 		<div id="map"></div>
 		<div class="toast" id="invalid-request" style="display:none" onclick="hide_invalid_request()">Invalid Request</div>
+		<div class="toast" id="no-path-found" style="display:none" onclick="hide_no_path_found()">No Path found</div>
+		<div class="toast" id="select-start-and-end" style="display:none" onclick="hide_select_start_and_end()">Please select start and end</div>
 		<script src="leaflet_script.js"></script>
 	</body>
 </html>
