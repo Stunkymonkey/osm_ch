@@ -61,7 +61,7 @@ function query() {
 		if (xhr.readyState === 4 && xhr.status === 200) {
 			var json = JSON.parse(xhr.responseText);
 			if (json.path != "") {
-				printPath(json);
+				printPath(json.path);
 			} else {
 				show_no_path_found();
 			}
@@ -90,8 +90,22 @@ function query() {
 }
 
 
-function printPath(json) {
-	console.log("response: " + json);
+function printPath(path) {
+	// create [lat, lng] array for leaflet map
+	let points = path.map(function(node) {
+		return [node.latitude, node.longitude]
+	});
+	console.log(points);
+	for(let i = 0; i < points.length; i++)
+	{
+		// create circle for every node
+		L.circle(points[i], {radius: 2}).addTo(map)
+
+		// create edges between every two adjacent points
+		if(i + 1 < points.length){
+			L.polyline([points[i], points[i+1]]).addTo(map);
+		}
+	}
 }
 
 

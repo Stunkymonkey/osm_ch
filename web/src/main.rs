@@ -60,7 +60,6 @@ fn query(request: web::Json<Query>, dijkstra: web::Data<Graph>) -> web::Json<Res
     // println!("Start: {},{}", start.latitude, start.longitude);
     // println!("End: {},{}", end.latitude, end.longitude);
     // println!("use_car: {}, by_distance: {}", use_car, by_distance);
-
     let timing = Instant::now();
 
     // search for clicked points
@@ -88,7 +87,9 @@ fn query(request: web::Json<Query>, dijkstra: web::Data<Graph>) -> web::Json<Res
             result = Vec::<Node>::new();
         }
     }
+
     println!("### answered request in: {:?}", total_time.elapsed());
+
 
     return web::Json(Response { path: result });
 }
