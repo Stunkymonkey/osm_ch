@@ -76,11 +76,7 @@ fn query(request: web::Json<Query>, dijkstra: web::Data<Graph>) -> web::Json<Res
     let result: Vec<Node>;
     match tmp {
         Some((path, _cost)) => {
-            let timing = Instant::now();
-
             result = dijkstra.get_coordinates(path);
-
-            println!("### duration for get_coordinates(): {:?}", timing.elapsed());
         }
         None => {
             println!("no path found");
@@ -89,7 +85,6 @@ fn query(request: web::Json<Query>, dijkstra: web::Data<Graph>) -> web::Json<Res
     }
 
     println!("### answered request in: {:?}", total_time.elapsed());
-
 
     return web::Json(Response { path: result });
 }

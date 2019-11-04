@@ -57,7 +57,6 @@ impl Graph {
 
     /// converts node ids to node-coordinates
     pub fn get_coordinates(&self, path: Vec<usize>) -> Vec<Node> {
-        println!("now getting coords");
         return path.iter().map(|x| self.nodes[*x]).collect::<Vec<Node>>();
     }
 
