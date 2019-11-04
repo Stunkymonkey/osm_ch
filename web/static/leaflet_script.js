@@ -21,7 +21,7 @@ let startMarker;
 let endPoint;
 let endMarker;
 let tmpMarker;
-let last_path;
+var last_path;
 let xhr = new XMLHttpRequest();
 
 function onMapClick(e) {
@@ -67,7 +67,8 @@ function query() {
 	hide_invalid_request();
 	hide_no_path_found();
 	hide_select_start_and_end();
-	if (typeof last_path !== 'undefined') {
+
+	if (typeof last_path === 'object') {
 		map.removeLayer(last_path);
 	}
 	
@@ -94,7 +95,7 @@ function query() {
 	};
 
 	var travel_type = document.getElementById("travel-type").value == "car";
-	var optimization = document.getElementById("optimization").value == "time";
+	var optimization = document.getElementById("optimization").value == "distance";
 	var body = {
 		"start": {
 			"latitude": startPoint.lat,
@@ -114,23 +115,12 @@ function query() {
 
 
 function printPath(path) {
-	// TODO change to polyline for better performance
 	// create [lat, lng] array for leaflet map
 	let points = path.map(function(node) {
 		return [node.latitude, node.longitude]
 	});
-	console.log(points);
-	for (let i = 0; i < points.length; i++) {
-		// create circle for every node
-		L.circle(points[i], {
-			radius: 2
-		}).addTo(map)
-
-		// create edges between every two adjacent points
-		if (i + 1 < points.length) {
-			last_path = L.polyline([points[i], points[i + 1]]).addTo(map);
-		}
-	}
+	last_path = L.polyline(points);
+	map.addLayer(last_path);
 }
 
 
