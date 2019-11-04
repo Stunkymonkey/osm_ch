@@ -65,7 +65,7 @@ impl Graph {
         &self,
         source: usize,
         target: usize,
-        weight: usize,
+        speed: usize,
         use_distance: bool,
     ) -> usize {
         let distance = calc_distance(
@@ -75,9 +75,9 @@ impl Graph {
             self.nodes[target].longitude,
         );
         if use_distance {
-            return distance.ceil() as usize;
+            return (distance as usize) + 1;
         } else {
-            return (distance / weight as f32) as usize;
+            return (distance * 4096.0 / speed as f32) as usize;
         }
     }
 
@@ -97,6 +97,7 @@ impl Graph {
             node: start,
             cost: 0,
         });
+        // let mut counter: usize = 0;
 
         while let Some(State { node, cost }) = heap.pop() {
             if node == end {
@@ -108,6 +109,7 @@ impl Graph {
                     current_dist = dist[prev];
                 }
                 path.reverse();
+                // println!("zero-counter {:?}", counter);
                 return Some((path, cost));
             }
 
@@ -127,6 +129,9 @@ impl Graph {
                             use_distance,
                         ),
                 };
+                // if next.cost < 1 {
+                //     counter += 1;
+                // }
                 if next.cost < dist[next.node].0 {
                     dist[next.node] = (next.cost, Some(node));
                     heap.push(next);
