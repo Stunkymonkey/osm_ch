@@ -20,7 +20,8 @@ use std::time::Instant;
 pub struct Way {
     source: usize,
     target: usize,
-    weight: usize,
+    speed: usize,
+    distance: usize,
     kind: usize,
 }
 
@@ -48,6 +49,7 @@ struct Query {
 #[derive(Debug, Deserialize, Serialize)]
 struct Response {
     path: Vec<Node>,
+    cost: String,
 }
 
 fn query(request: web::Json<Query>, dijkstra: web::Data<Graph>) -> web::Json<Response> {
@@ -74,19 +76,29 @@ fn query(request: web::Json<Query>, dijkstra: web::Data<Graph>) -> web::Json<Res
     println!("### duration for find_path(): {:?}", timing.elapsed());
 
     let result: Vec<Node>;
+    let mut cost: String;
     match tmp {
-        Some((path, _cost)) => {
+        Some((path, path_cost)) => {
             result = dijkstra.get_coordinates(path);
+            cost = path_cost.to_string();
+            match by_distance {
+                false => cost.push_str(" hour"),
+                true => cost.push_str(" km"),
+            };
         }
         None => {
             println!("no path found");
             result = Vec::<Node>::new();
+            cost = 0.to_string();
         }
     }
 
     println!("### answered request in: {:?}", total_time.elapsed());
 
-    return web::Json(Response { path: result });
+    return web::Json(Response {
+        path: result,
+        cost: cost,
+    });
 }
 
 fn main() {
