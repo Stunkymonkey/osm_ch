@@ -13,20 +13,22 @@ use std::fs::File;
 use std::io::BufWriter;
 use std::path::Path;
 
-// let get_type: () = var;
+// 2^18
+const COST_MULTIPLICATOR: usize = 262144;
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Debug, Copy, Clone)]
 struct Way {
     source: usize,
     target: usize,
-    weight: usize,
+    speed: usize,
+    distance: usize,
     kind: usize,
 }
 
 #[derive(Serialize, Debug, Clone)]
 struct Node {
-    latitude: f32,
-    longitude: f32,
+    latitude: f64,
+    longitude: f64,
 }
 
 #[derive(Serialize, Debug)]
@@ -37,7 +39,7 @@ struct Output {
 }
 
 fn parse_speed(max_speed: &str, highway: &str) -> usize {
-    match max_speed.trim().parse::<usize>() {
+    match max_speed.parse::<usize>() {
         Ok(ok) => return ok,
         Err(_e) => match resolve_max_speed(max_speed) {
             Ok(ok) => return ok,
@@ -153,7 +155,8 @@ fn main() {
                         ways.push(Way {
                             source: prev_id,
                             target: id,
-                            weight: speed,
+                            speed: speed,
+                            distance: 0,
                             // TODO add what kind of street it is
                             kind: 1,
                         });
@@ -189,8 +192,8 @@ fn main() {
                 match osm_id_mapping.get(&node.id.0) {
                     Some(our_id) => {
                         nodes[*our_id] = Node {
-                            latitude: node.decimicro_lat as f32 / 10000000.0,
-                            longitude: node.decimicro_lon as f32 / 10000000.0,
+                            latitude: node.decimicro_lat as f64 / 10000000.0,
+                            longitude: node.decimicro_lon as f64 / 10000000.0,
                         }
                     }
                     None => continue,
@@ -201,6 +204,33 @@ fn main() {
 
     ways.sort_by(|a, b| a.source.cmp(&b.source));
     fill_offset(&ways, &mut offset);
+
+    let mut counter: usize = 0;
+    let mut longest_way: f64 = 0.0;
+    let mut shortest_way: f64 = 200.0;
+
+    for i in 0..ways.len() {
+        let mut way = ways[i];
+        let distance = calc_distance(
+            nodes[way.source].latitude,
+            nodes[way.source].longitude,
+            nodes[way.target].latitude,
+            nodes[way.target].longitude,
+        );
+        way.distance = (distance * COST_MULTIPLICATOR as f64) as usize;
+        if way.distance == 0 {
+            counter += 1;
+        }
+        if distance >= longest_way {
+            longest_way = distance;
+        }
+        if distance <= shortest_way {
+            shortest_way = distance;
+        }
+    }
+    println!("zero counter {:?}", counter);
+    println!("long counter {:?}", longest_way);
+    println!("short counter {:?}", shortest_way);
 
     // serialize everything
     let result = Output {
@@ -223,4 +253,18 @@ fn fill_offset(ways: &Vec<Way>, offset: &mut Vec<usize>) {
     for i in 1..offset.len() {
         offset[i] += offset[i - 1];
     }
+}
+
+/// get distance on earth surface using haversine formula
+fn calc_distance(lat_1: f64, long_1: f64, lat_2: f64, long_2: f64) -> f64 {
+    let r: f64 = 6371.0; // constant used for meters
+    let d_lat: f64 = (lat_2 - lat_1).to_radians();
+    let d_lon: f64 = (long_2 - long_1).to_radians();
+    let lat1: f64 = (lat_1).to_radians();
+    let lat2: f64 = (lat_2).to_radians();
+
+    let a: f64 = ((d_lat / 2.0).sin()) * ((d_lat / 2.0).sin())
+        + ((d_lon / 2.0).sin()) * ((d_lon / 2.0).sin()) * (lat1.cos()) * (lat2.cos());
+    let c: f64 = 2.0 * ((a.sqrt()).atan2((1.0 - a).sqrt()));
+    return r * c;
 }
