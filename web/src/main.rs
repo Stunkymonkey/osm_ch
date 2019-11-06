@@ -15,6 +15,7 @@ use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
 use std::time::Instant;
+use std::collections::HashMap;
 
 #[derive(Copy, Clone, Deserialize, Debug)]
 pub struct Way {
@@ -36,6 +37,7 @@ struct Input {
     nodes: Vec<Node>,
     ways: Vec<Way>,
     offset: Vec<usize>,
+    grid: HashMap<(usize, usize), Vec<usize>>
 }
 
 #[derive(Debug, Deserialize, Serialize)]

@@ -15,6 +15,8 @@ use std::path::Path;
 
 // 2^18
 const COST_MULTIPLICATOR: usize = 262144;
+// First three digits of coordinates are used for the grid hashing
+const GRID_MULTIPLICATOR: usize = 100;
 
 #[derive(Serialize, Debug, Clone)]
 struct Way {
@@ -36,6 +38,7 @@ struct Output {
     nodes: Vec<Node>,
     ways: Vec<Way>,
     offset: Vec<usize>,
+    grid: HashMap<(usize, usize), Vec<usize>>
 }
 
 fn parse_speed(max_speed: &str, highway: &str) -> usize {
@@ -96,6 +99,8 @@ fn main() {
     let mut ways = Vec::<Way>::new();
     let mut nodes = Vec::<Node>::new();
     let mut offset = Vec::<usize>::new();
+    // stores node ids for a 2d grid e.g. (1,1) = [1,2,3,..]
+    let mut grid = HashMap::<(usize, usize), Vec<usize>>::new();
 
     let mut amount_nodes = 0;
 
@@ -191,9 +196,25 @@ fn main() {
                 // check if node in osm_id_mapping
                 match osm_id_mapping.get(&node.id.0) {
                     Some(our_id) => {
+                        let latitude = node.decimicro_lat as f32 / 10_000_000.0;
+                        let longitude = node.decimicro_lon as f32 / 10_000_000.0;
                         nodes[*our_id] = Node {
-                            latitude: node.decimicro_lat as f32 / 10000000.0,
-                            longitude: node.decimicro_lon as f32 / 10000000.0,
+                            // https://github.com/rust-lang/rfcs/blob/master/text/1682-field-init-shorthand.md
+                            latitude,
+                            longitude,
+                        };
+                        let lat_grid = (latitude * GRID_MULTIPLICATOR as f32) as i32;
+                        let lng_grid = (longitude * GRID_MULTIPLICATOR as f32) as i32;
+                        let current_grid = grid.get_mut(&(lat_grid as usize, lng_grid as usize));
+                        match current_grid {
+                            Some(id_list) => {
+                                id_list.push(*our_id);
+                            },
+                            None => {
+                                let mut new_id_list = Vec::<usize>::new();
+                                new_id_list.push(*our_id);
+                                grid.insert((lat_grid as usize, lng_grid as usize), new_id_list);
+                            }
                         }
                     }
                     None => continue,
@@ -233,9 +254,10 @@ fn main() {
 
     // serialize everything
     let result = Output {
-        nodes: nodes,
-        ways: ways,
-        offset: offset,
+        nodes,
+        ways,
+        offset,
+        grid
     };
 
     let output_file = format!("{}{}", filename.into_string().unwrap(), ".fmi");
