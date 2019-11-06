@@ -7,55 +7,64 @@ fn fill_offset_test() {
     ways.push(Way {
         source: 0,
         target: 1,
-        weight: 2,
+        speed: 2,
+        distance: 2,
         kind: 1,
     });
     ways.push(Way {
         source: 0,
         target: 1,
-        weight: 2,
+        speed: 2,
+        distance: 2,
         kind: 1,
     });
     ways.push(Way {
         source: 0,
         target: 1,
-        weight: 2,
+        speed: 2,
+        distance: 2,
         kind: 1,
     });
     ways.push(Way {
         source: 2,
         target: 1,
-        weight: 2,
+        speed: 2,
+        distance: 2,
         kind: 1,
     });
     ways.push(Way {
         source: 3,
         target: 1,
-        weight: 2,
+        speed: 2,
+        distance: 2,
         kind: 1,
     });
     ways.push(Way {
         source: 4,
         target: 1,
-        weight: 2,
+        speed: 2,
+        distance: 2,
         kind: 1,
     });
     ways.push(Way {
         source: 4,
         target: 1,
-        weight: 2,
+        speed: 2,
+        distance: 2,
         kind: 1,
     });
     ways.push(Way {
         source: 4,
         target: 1,
-        weight: 2,
+        speed: 2,
+        distance: 2,
         kind: 1,
     });
     ways.push(Way {
         source: 6,
         target: 1,
-        weight: 2,
+        speed: 2,
+        distance: 2,
         kind: 1,
     });
     fill_offset(&ways, &mut offset_test);
