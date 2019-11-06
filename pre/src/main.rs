@@ -16,7 +16,7 @@ use std::path::Path;
 // 2^18
 const COST_MULTIPLICATOR: usize = 262144;
 
-#[derive(Serialize, Debug, Copy, Clone)]
+#[derive(Serialize, Debug, Clone)]
 struct Way {
     source: usize,
     target: usize,
@@ -27,8 +27,8 @@ struct Way {
 
 #[derive(Serialize, Debug, Clone)]
 struct Node {
-    latitude: f64,
-    longitude: f64,
+    latitude: f32,
+    longitude: f32,
 }
 
 #[derive(Serialize, Debug)]
@@ -192,8 +192,8 @@ fn main() {
                 match osm_id_mapping.get(&node.id.0) {
                     Some(our_id) => {
                         nodes[*our_id] = Node {
-                            latitude: node.decimicro_lat as f64 / 10000000.0,
-                            longitude: node.decimicro_lon as f64 / 10000000.0,
+                            latitude: node.decimicro_lat as f32 / 10000000.0,
+                            longitude: node.decimicro_lon as f32 / 10000000.0,
                         }
                     }
                     None => continue,
@@ -206,19 +206,18 @@ fn main() {
     fill_offset(&ways, &mut offset);
 
     let mut counter: usize = 0;
-    let mut longest_way: f64 = 0.0;
-    let mut shortest_way: f64 = 200.0;
+    let mut longest_way: f32 = 0.0;
+    let mut shortest_way: f32 = 200.0;
 
     for i in 0..ways.len() {
-        let mut way = ways[i];
         let distance = calc_distance(
-            nodes[way.source].latitude,
-            nodes[way.source].longitude,
-            nodes[way.target].latitude,
-            nodes[way.target].longitude,
+            nodes[ways[i].source].latitude,
+            nodes[ways[i].source].longitude,
+            nodes[ways[i].target].latitude,
+            nodes[ways[i].target].longitude,
         );
-        way.distance = (distance * COST_MULTIPLICATOR as f64) as usize;
-        if way.distance == 0 {
+        ways[i].distance = (distance * COST_MULTIPLICATOR as f32) as usize;
+        if ways[i].distance == 0 {
             counter += 1;
         }
         if distance >= longest_way {
@@ -256,15 +255,15 @@ fn fill_offset(ways: &Vec<Way>, offset: &mut Vec<usize>) {
 }
 
 /// get distance on earth surface using haversine formula
-fn calc_distance(lat_1: f64, long_1: f64, lat_2: f64, long_2: f64) -> f64 {
-    let r: f64 = 6371.0; // constant used for meters
-    let d_lat: f64 = (lat_2 - lat_1).to_radians();
-    let d_lon: f64 = (long_2 - long_1).to_radians();
-    let lat1: f64 = (lat_1).to_radians();
-    let lat2: f64 = (lat_2).to_radians();
+fn calc_distance(lat_1: f32, long_1: f32, lat_2: f32, long_2: f32) -> f32 {
+    let r: f32 = 6371.0; // constant used for meters
+    let d_lat: f32 = (lat_2 - lat_1).to_radians();
+    let d_lon: f32 = (long_2 - long_1).to_radians();
+    let lat1: f32 = (lat_1).to_radians();
+    let lat2: f32 = (lat_2).to_radians();
 
-    let a: f64 = ((d_lat / 2.0).sin()) * ((d_lat / 2.0).sin())
+    let a: f32 = ((d_lat / 2.0).sin()) * ((d_lat / 2.0).sin())
         + ((d_lon / 2.0).sin()) * ((d_lon / 2.0).sin()) * (lat1.cos()) * (lat2.cos());
-    let c: f64 = 2.0 * ((a.sqrt()).atan2((1.0 - a).sqrt()));
+    let c: f32 = 2.0 * ((a.sqrt()).atan2((1.0 - a).sqrt()));
     return r * c;
 }
