@@ -86,6 +86,7 @@ function query() {
 			var json = JSON.parse(xhr.responseText);
 			if (json.path != "") {
 				printPath(json.path);
+				show_result(json.cost);
 			} else {
 				show_no_path_found();
 			}
@@ -149,6 +150,18 @@ function show_select_start_and_end() {
 }
 function hide_select_start_and_end() {
 	var x = document.getElementById("select-start-and-end");
+	if (x.style.display === "block") {
+		x.style.display = "none";
+	}
+}
+
+function show_result(costs) {
+	var tmp = document.getElementById("result")
+	tmp.innerHTML = costs;
+	tmp.style.display = "block";
+}
+function hide_result() {
+	var x = document.getElementById("result");
 	if (x.style.display === "block") {
 		x.style.display = "none";
 	}
