@@ -6,6 +6,9 @@ use std::usize;
 use Node;
 use Way;
 
+// 2^18
+const COST_MULTIPLICATOR: usize = 262144;
+
 #[derive(Clone)]
 pub struct Graph {
     nodes: Vec<Node>,
@@ -61,23 +64,14 @@ impl Graph {
     }
 
     /// returns the edge weight from source to target
-    fn get_edge_weight(
-        &self,
-        source: usize,
-        target: usize,
-        speed: usize,
-        use_distance: bool,
-    ) -> usize {
-        let distance = calc_distance(
-            self.nodes[source].latitude,
-            self.nodes[source].longitude,
-            self.nodes[target].latitude,
-            self.nodes[target].longitude,
-        );
+    fn get_edge_weight(&self, way: Way, use_distance: bool) -> usize {
         if use_distance {
-            return (distance as usize) + 1;
+            return way.distance;
         } else {
-            return (distance * 4096.0 / speed as f32) as usize;
+            if way.speed == 0 {
+                return way.distance;
+            }
+            return way.distance / way.speed;
         }
     }
 
@@ -110,7 +104,7 @@ impl Graph {
                 }
                 path.reverse();
                 // println!("zero-counter {:?}", counter);
-                return Some((path, cost));
+                return Some((path, cost / COST_MULTIPLICATOR));
             }
 
             if cost > dist[node].0 {
@@ -121,13 +115,7 @@ impl Graph {
                 // TODO check if should skip due to is_car
                 let next = State {
                     node: current_way.target,
-                    cost: cost
-                        + self.get_edge_weight(
-                            current_way.source,
-                            current_way.target,
-                            current_way.weight,
-                            use_distance,
-                        ),
+                    cost: cost + self.get_edge_weight(current_way, use_distance),
                 };
                 // if next.cost < 1 {
                 //     counter += 1;
