@@ -48,17 +48,20 @@ impl Graph {
 
     /// returns closes point of given long & lat
     pub fn get_point_id(&self, lat: f32, long: f32) -> usize {
-        let lat_grid = (lat * GRID_MULTIPLICATOR as f32) as i32;
-        let lng_grid = (long * GRID_MULTIPLICATOR as f32) as i32;
         let mut min_distance: f32 = std::f32::MAX;
         let mut min_distance_id: usize = 0;
-
-        for i in 0..self.nodes.len() {
-            let distance =
-                calc_distance(lat, long, self.nodes[i].latitude, self.nodes[i].longitude);
-            if distance < min_distance {
-                min_distance = distance;
-                min_distance_id = i;
+        let adjacent_nodes = self.get_adjacent_node_ids(lat, long);
+        for node_id in adjacent_nodes {
+            match self.nodes.get(node_id) {
+                Some(node) => {
+                    let distance =
+                        calc_distance(lat, long, node.latitude, node.longitude);
+                    if distance < min_distance {
+                        min_distance = distance;
+                        min_distance_id = node_id;
+                    }
+                },
+                None => continue
             }
         }
         return min_distance_id;
@@ -81,8 +84,37 @@ impl Graph {
         }
     }
 
-    fn get_adjacent_grids(current_grid: (usize, usize), grid: &HashMap<(usize, usize), Vec<usize>>) {
-
+    /// returns node_ids in adjacent grid cells
+    /// goes from most inner cell to cells with distance 1 to n until a node is found
+    fn get_adjacent_node_ids(&self, lat: f32, lng: f32) -> Vec<usize> {
+        let lat_grid = (lat * GRID_MULTIPLICATOR as f32) as usize;
+        let lng_grid = (lng * GRID_MULTIPLICATOR as f32) as usize;
+        let mut node_ids = Vec::<usize>::new();
+        match self.grid.get(&(lat_grid, lng_grid)) {
+            Some(adjacent_node_ids) => node_ids.extend(adjacent_node_ids),
+            None => ()
+        }
+        let mut in_dist: usize = 1;
+        loop {
+            for x in lat_grid-in_dist..lat_grid+in_dist+1 {
+                for y in lng_grid-in_dist..lng_grid+in_dist+1 {
+                    if (x < lat_grid+in_dist || x > lat_grid-in_dist) && (y < lng_grid-in_dist || y > lng_grid+in_dist) {
+                        // both coordinates are bigger or smaller than the outer bounds => in inner square => already investigated
+                        continue;
+                    }
+                    match self.grid.get(&(x,y)) {
+                        Some(adjacent_node_ids) => node_ids.extend(adjacent_node_ids),
+                        None => continue
+                    }
+                }
+            }
+            if node_ids.len() > 0 {
+                return node_ids
+            } else {
+                // search in next level
+                in_dist += 1;
+            }
+        }
     }
 
     /// executes dijkstra

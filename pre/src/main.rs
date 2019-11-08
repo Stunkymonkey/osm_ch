@@ -203,9 +203,9 @@ fn main() {
                             latitude,
                             longitude,
                         };
-                        let lat_grid = (latitude * GRID_MULTIPLICATOR as f32) as i32;
-                        let lng_grid = (longitude * GRID_MULTIPLICATOR as f32) as i32;
-                        let current_grid = grid.get_mut(&(lat_grid as usize, lng_grid as usize));
+                        let lat_grid = (latitude * GRID_MULTIPLICATOR as f32) as usize;
+                        let lng_grid = (longitude * GRID_MULTIPLICATOR as f32) as usize;
+                        let current_grid = grid.get_mut(&(lat_grid, lng_grid));
                         match current_grid {
                             Some(id_list) => {
                                 id_list.push(*our_id);

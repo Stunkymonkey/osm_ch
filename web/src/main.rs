@@ -121,7 +121,7 @@ fn main() {
     // read file
     let mut f = BufReader::new(File::open(filename).unwrap());
     let input: Input = deserialize_from(&mut f).unwrap();
-    let d = Graph::new(input.nodes, input.ways, input.offset);
+    let d = Graph::new(input.nodes, input.ways, input.offset, input.grid);
 
     let graph = web::Data::new(d);
 
