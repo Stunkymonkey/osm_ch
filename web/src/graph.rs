@@ -16,7 +16,7 @@ pub struct Graph {
     nodes: Vec<Node>,
     ways: Vec<Way>,
     offset: Vec<usize>,
-    grid: HashMap<(usize, usize), Vec<usize>>
+    grid: HashMap<(usize, usize), Vec<usize>>,
 }
 
 #[derive(Copy, Clone, Eq, PartialEq)]
@@ -37,12 +37,17 @@ impl PartialOrd for State {
 }
 
 impl Graph {
-    pub fn new(nodes: Vec<Node>, ways: Vec<Way>, offset: Vec<usize>, grid: HashMap<(usize, usize), Vec<usize>>) -> Self {
+    pub fn new(
+        nodes: Vec<Node>,
+        ways: Vec<Way>,
+        offset: Vec<usize>,
+        grid: HashMap<(usize, usize), Vec<usize>>,
+    ) -> Self {
         Graph {
             nodes,
             ways,
             offset,
-            grid
+            grid,
         }
     }
 
@@ -54,14 +59,13 @@ impl Graph {
         for node_id in adjacent_nodes {
             match self.nodes.get(node_id) {
                 Some(node) => {
-                    let distance =
-                        calc_distance(lat, long, node.latitude, node.longitude);
+                    let distance = calc_distance(lat, long, node.latitude, node.longitude);
                     if distance < min_distance {
                         min_distance = distance;
                         min_distance_id = node_id;
                     }
-                },
-                None => continue
+                }
+                None => continue,
             }
         }
         return min_distance_id;
@@ -92,24 +96,26 @@ impl Graph {
         let mut node_ids = Vec::<usize>::new();
         match self.grid.get(&(lat_grid, lng_grid)) {
             Some(adjacent_node_ids) => node_ids.extend(adjacent_node_ids),
-            None => ()
+            None => (),
         }
         let mut in_dist: usize = 1;
         loop {
-            for x in lat_grid-in_dist..lat_grid+in_dist+1 {
-                for y in lng_grid-in_dist..lng_grid+in_dist+1 {
-                    if (x < lat_grid+in_dist || x > lat_grid-in_dist) && (y < lng_grid-in_dist || y > lng_grid+in_dist) {
+            for x in lat_grid - in_dist..lat_grid + in_dist + 1 {
+                for y in lng_grid - in_dist..lng_grid + in_dist + 1 {
+                    if (x < lat_grid + in_dist || x > lat_grid - in_dist)
+                        && (y < lng_grid - in_dist || y > lng_grid + in_dist)
+                    {
                         // both coordinates are bigger or smaller than the outer bounds => in inner square => already investigated
                         continue;
                     }
-                    match self.grid.get(&(x,y)) {
+                    match self.grid.get(&(x, y)) {
                         Some(adjacent_node_ids) => node_ids.extend(adjacent_node_ids),
-                        None => continue
+                        None => continue,
                     }
                 }
             }
             if node_ids.len() > 0 {
-                return node_ids
+                return node_ids;
             } else {
                 // search in next level
                 in_dist += 1;
