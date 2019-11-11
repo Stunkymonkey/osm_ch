@@ -46,6 +46,9 @@ function setStart() {
 		icon: greenIcon
 	}).addTo(map);
 	map.removeLayer(tmpMarker);
+	if (typeof last_path === 'object') {
+		map.removeLayer(last_path);
+	}
 }
 
 function setEnd() {
@@ -61,6 +64,9 @@ function setEnd() {
 		icon: redIcon
 	}).addTo(map);
 	map.removeLayer(tmpMarker);
+	if (typeof last_path === 'object') {
+		map.removeLayer(last_path);
+	}
 }
 
 function query() {
@@ -122,6 +128,7 @@ function printPath(path) {
 	});
 	last_path = L.polyline(points);
 	map.addLayer(last_path);
+	map.fitBounds(last_path.getBounds().pad(Math.sqrt(2) / 4));
 }
 
 
