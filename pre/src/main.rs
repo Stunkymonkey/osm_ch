@@ -38,7 +38,7 @@ struct Output {
     nodes: Vec<Node>,
     ways: Vec<Way>,
     offset: Vec<usize>,
-    grid: HashMap<(usize, usize), Vec<usize>>
+    grid: HashMap<(usize, usize), Vec<usize>>,
 }
 
 fn parse_speed(max_speed: &str, highway: &str) -> usize {
@@ -205,11 +205,10 @@ fn main() {
                         };
                         let lat_grid = (latitude * GRID_MULTIPLICATOR as f32) as usize;
                         let lng_grid = (longitude * GRID_MULTIPLICATOR as f32) as usize;
-                        let current_grid = grid.get_mut(&(lat_grid, lng_grid));
-                        match current_grid {
+                        match grid.get_mut(&(lat_grid, lng_grid)) {
                             Some(id_list) => {
                                 id_list.push(*our_id);
-                            },
+                            }
                             None => {
                                 let mut new_id_list = Vec::<usize>::new();
                                 new_id_list.push(*our_id);
@@ -248,16 +247,18 @@ fn main() {
             shortest_way = distance;
         }
     }
+    /*
     println!("zero counter {:?}", counter);
     println!("long counter {:?}", longest_way);
     println!("short counter {:?}", shortest_way);
+    */
 
     // serialize everything
     let result = Output {
         nodes,
         ways,
         offset,
-        grid
+        grid,
     };
 
     let output_file = format!("{}{}", filename.into_string().unwrap(), ".fmi");
