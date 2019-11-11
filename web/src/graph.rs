@@ -130,7 +130,7 @@ impl Graph {
         end: usize,
         is_car: bool,
         use_distance: bool,
-    ) -> Option<(Vec<usize>, usize)> {
+    ) -> Option<(Vec<usize>, f32)> {
         let mut dist = vec![(usize::MAX, None); self.nodes.len()];
 
         let mut heap = BinaryHeap::new();
@@ -152,7 +152,7 @@ impl Graph {
                 }
                 path.reverse();
                 // println!("zero-counter {:?}", counter);
-                return Some((path, cost / COST_MULTIPLICATOR));
+                return Some((path, cost as f32 / COST_MULTIPLICATOR as f32));
             }
 
             if cost > dist[node].0 {

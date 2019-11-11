@@ -11,11 +11,11 @@ use actix_web::{middleware, web, App, HttpServer};
 use bincode::deserialize_from;
 use graph::Graph;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
 use std::time::Instant;
-use std::collections::HashMap;
 
 #[derive(Copy, Clone, Deserialize, Debug)]
 pub struct Way {
@@ -37,7 +37,7 @@ struct Input {
     nodes: Vec<Node>,
     ways: Vec<Way>,
     offset: Vec<usize>,
-    grid: HashMap<(usize, usize), Vec<usize>>
+    grid: HashMap<(usize, usize), Vec<usize>>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -78,14 +78,23 @@ fn query(request: web::Json<Query>, dijkstra: web::Data<Graph>) -> web::Json<Res
     println!("### duration for find_path(): {:?}", timing.elapsed());
 
     let result: Vec<Node>;
-    let mut cost: String;
+    let mut cost: String = "".to_string();
     match tmp {
         Some((path, path_cost)) => {
             result = dijkstra.get_coordinates(path);
-            cost = path_cost.to_string();
             match by_distance {
-                false => cost.push_str(" hour"),
-                true => cost.push_str(" km"),
+                false => {
+                    if path_cost.trunc() >= 1.0 {
+                        cost = path_cost.trunc().to_string();
+                        cost.push_str("h ");
+                    }
+                    cost.push_str(&format!("{:.0}", path_cost.fract() * 60.0));
+                    cost.push_str("min");
+                }
+                true => {
+                    cost = format!("{:.2}", path_cost);
+                    cost.push_str("km");
+                }
             };
         }
         None => {
