@@ -56,26 +56,28 @@ fn parse_speed(max_speed: &str, highway: &str) -> usize {
 /// resolves the int value from a dirty string that can't be resolved by default parsing
 fn resolve_max_speed(s: &str) -> Result<usize, &str> {
     match s {
+        "DE:motorway" => return Ok(120),
         "DE:rural" | "AT:rural" => return Ok(100),
         "DE:urban" | "AT:urban" | "CZ:urban" => return Ok(50),
-        "DE:walk" | "walk" | "Schrittgeschwindigkeit" => return Ok(7),
+        "maxspeed=50" => return Ok(50),
+        "50;" | "50b" => return Ok(50),
         "DE:living_street" => return Ok(30),
-        "DE:motorway" => return Ok(120),
         "30 kph" => return Ok(30),
         "zone:maxspeed=de:30" => return Ok(30),
         "DE:zone:30" => return Ok(30),
-        "50;" | "50b" => return Ok(50),
-        "10 mph" => return Ok(10),
-        "5 mph" => return Ok(7),
-        "maxspeed=50" => return Ok(50),
         "DE:zone30" => return Ok(30),
         "30 mph" => return Ok(30),
         "20:forward" => return Ok(20),
+        "10 mph" => return Ok(10),
+        "5 mph" => return Ok(7),
+        "DE:walk" | "walk" | "Schrittgeschwindigkeit" => return Ok(7),
         _ => return Err("none"),
     };
 }
 
 /// approximates the speed limit based on given highway type
+// infos from https://wiki.openstreetmap.org/wiki/Key:highway
+// TODO check if more types can be added
 fn aproximate_speed_limit(s: &str) -> usize {
     match s {
         "motorway" => return 120,
@@ -88,10 +90,13 @@ fn aproximate_speed_limit(s: &str) -> usize {
         "tertiary" | "tertiary_link" => return 50,
         "unclassified" => return 40,
         "residential" => return 30,
-        "service" => return 10,
-        "living_street" => return 50,
-        "walk" => return 3,
-        _ => return 50,
+        "track" | "service" => return 10,
+        "living_street" => return 7,
+        "path" | "walk" | "footway" => return 4,
+        _ => {
+            // println!("speed limit {:?}", s);
+            return 50;
+        }
     }
 }
 
