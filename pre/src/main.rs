@@ -263,9 +263,7 @@ fn main() {
     ways.sort_by(|a, b| a.source.cmp(&b.source));
     fill_offset(&ways, &mut offset);
 
-    let mut counter: usize = 0;
-    let mut longest_way: f32 = 0.0;
-    let mut shortest_way: f32 = 200.0;
+    //let mut counter: usize = 0;
 
     for i in 0..ways.len() {
         let distance = calc_distance(
@@ -275,21 +273,13 @@ fn main() {
             nodes[ways[i].target].longitude,
         );
         ways[i].distance = (distance * COST_MULTIPLICATOR as f32) as usize;
+        /*
         if ways[i].distance == 0 {
             counter += 1;
         }
-        if distance >= longest_way {
-            longest_way = distance;
-        }
-        if distance <= shortest_way {
-            shortest_way = distance;
-        }
+        */
     }
-    /*
-    println!("zero counter {:?}", counter);
-    println!("long counter {:?}", longest_way);
-    println!("short counter {:?}", shortest_way);
-    */
+    //println!("zero counter {:?}", counter);
 
     // serialize everything
     let result = Output {
