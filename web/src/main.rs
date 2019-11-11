@@ -23,7 +23,7 @@ pub struct Way {
     target: usize,
     speed: usize,
     distance: usize,
-    kind: usize,
+    travel_type: usize,
 }
 
 #[derive(Copy, Clone, Deserialize, Serialize, Debug)]
@@ -44,7 +44,7 @@ struct Input {
 struct Query {
     start: Node,
     end: Node,
-    use_car: bool,
+    travel_type: String,
     by_distance: bool,
 }
 
@@ -59,18 +59,23 @@ fn query(request: web::Json<Query>, dijkstra: web::Data<Graph>) -> web::Json<Res
     // extract points
     let start: &Node = &request.start;
     let end: &Node = &request.end;
-    let use_car: bool = request.use_car;
+    let travel_type = match request.travel_type.as_ref() {
+        "car" => 0,
+        "bicycle" => 1,
+        "foot" => 2,
+        _ => 0,
+    };
     let by_distance: bool = request.by_distance;
     // println!("Start: {},{}", start.latitude, start.longitude);
     // println!("End: {},{}", end.latitude, end.longitude);
-    // println!("use_car: {}, by_distance: {}", use_car, by_distance);
+    // println!("travel_type: {}, by_distance: {}", travel_type, by_distance);
 
     // search for clicked points
-    let start_id: usize = dijkstra.get_point_id(start.latitude, start.longitude);
-    let end_id: usize = dijkstra.get_point_id(end.latitude, end.longitude);
+    let start_id: usize = dijkstra.get_point_id(start.latitude, start.longitude, travel_type);
+    let end_id: usize = dijkstra.get_point_id(end.latitude, end.longitude, travel_type);
 
     let timing = Instant::now();
-    let tmp = dijkstra.find_path(start_id, end_id, use_car, by_distance);
+    let tmp = dijkstra.find_path(start_id, end_id, travel_type, by_distance);
     println!("### duration for find_path(): {:?}", timing.elapsed());
 
     let result: Vec<Node>;

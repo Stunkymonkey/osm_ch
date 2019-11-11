@@ -52,7 +52,8 @@ impl Graph {
     }
 
     /// returns closes point of given long & lat
-    pub fn get_point_id(&self, lat: f32, long: f32) -> usize {
+    pub fn get_point_id(&self, lat: f32, long: f32, travel_type: usize) -> usize {
+        // TODO check if travel_type can be used
         let mut min_distance: f32 = std::f32::MAX;
         let mut min_distance_id: usize = 0;
         let adjacent_nodes = self.get_adjacent_node_ids(lat, long);
@@ -77,13 +78,14 @@ impl Graph {
     }
 
     /// returns the edge weight from source to target
-    fn get_edge_weight(&self, way: Way, use_distance: bool) -> usize {
+    fn get_edge_weight(&self, way: Way, travel_type: usize, use_distance: bool) -> usize {
         if use_distance {
             return way.distance;
         } else {
             if way.speed == 0 {
                 return way.distance;
             }
+            // TODO fix speed with correct travel_type
             return way.distance / way.speed;
         }
     }
@@ -128,7 +130,7 @@ impl Graph {
         &self,
         start: usize,
         end: usize,
-        is_car: bool,
+        travel_type: usize,
         use_distance: bool,
     ) -> Option<(Vec<usize>, f32)> {
         let mut dist = vec![(usize::MAX, None); self.nodes.len()];
@@ -152,17 +154,33 @@ impl Graph {
                 path.reverse();
                 return Some((path, cost as f32 / COST_MULTIPLICATOR as f32));
             }
-
             if cost > dist[node].0 {
                 continue;
             }
             for edge in self.offset[node]..self.offset[node + 1] {
                 let current_way: Way = self.ways[edge];
-                // TODO check if should skip due to is_car
+                // skip way, if the type does not match
+                match travel_type {
+                    0 => match current_way.travel_type {
+                        0 | 1 | 5 => (),
+                        _ => continue,
+                    },
+                    1 => match current_way.travel_type {
+                        1 | 2 | 3 | 5 => (),
+                        _ => continue,
+                    },
+                    2 => match current_way.travel_type {
+                        3 | 4 | 5 => (),
+                        _ => continue,
+                    },
+                    _ => unreachable!(),
+                }
+                // calculate costs
                 let next = State {
                     node: current_way.target,
-                    cost: cost + self.get_edge_weight(current_way, use_distance),
+                    cost: cost + self.get_edge_weight(current_way, travel_type, use_distance),
                 };
+                // add way to heap
                 if next.cost < dist[next.node].0 {
                     dist[next.node] = (next.cost, Some(node));
                     heap.push(next);

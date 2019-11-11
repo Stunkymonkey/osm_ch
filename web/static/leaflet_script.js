@@ -70,6 +70,7 @@ function setEnd() {
 }
 
 function query() {
+	hide_result();
 	hide_invalid_request();
 	hide_no_path_found();
 	hide_select_start_and_end();
@@ -101,7 +102,7 @@ function query() {
 		}
 	};
 
-	var travel_type = document.getElementById("travel-type").value == "car";
+	var travel_type = document.getElementById("travel-type").value;
 	var optimization = document.getElementById("optimization").value == "distance";
 	var body = {
 		"start": {
@@ -112,7 +113,7 @@ function query() {
 			"latitude": endPoint.lat,
 			"longitude": endPoint.lng
 		},
-		"use_car": travel_type,
+		"travel_type": travel_type,
 		"by_distance": optimization,
 	};
 	var data = JSON.stringify(body);

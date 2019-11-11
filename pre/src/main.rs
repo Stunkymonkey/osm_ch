@@ -24,7 +24,7 @@ struct Way {
     target: usize,
     speed: usize,
     distance: usize,
-    kind: usize,
+    travel_type: usize,
 }
 
 #[derive(Serialize, Debug, Clone)]
@@ -166,8 +166,8 @@ fn main() {
             for way in groups::ways(&group, &block) {
                 if way.tags.contains_key("highway") {
                     let highway = way.tags.get("highway").unwrap().trim();
-                    let kind = get_street_kind(highway);
-                    if kind == 100 {
+                    let travel_type = get_street_kind(highway);
+                    if travel_type == 100 {
                         continue;
                     }
                     let mut max_speed: &str = "";
@@ -201,7 +201,7 @@ fn main() {
                             target: id,
                             speed: speed,
                             distance: 0,
-                            kind: kind,
+                            travel_type: travel_type,
                         });
                         prev_id = id;
                     }
