@@ -100,6 +100,36 @@ fn aproximate_speed_limit(s: &str) -> usize {
     }
 }
 
+/// get what kind of street it is:
+/* infos from https://wiki.openstreetmap.org/wiki/Key:highway
+0 = car only
+1 = car and bicycle
+2 = bicycle
+3 = bicycle and pedestrian
+4 = pedestrian
+5 = all
+100 = skip
+*/
+fn get_street_kind(s: &str) -> usize {
+    match s {
+        "motorway" | "motorway_link" => return 0,
+        "trunk" | "trunk_link" => return 0,
+        "raceway" | "services" | "rest_area" => 0,
+        "primary" | "primary_link" => return 1,
+        "secondary" | "secondary_link" => return 1,
+        "tertiary" | "tertiary_link" => return 1,
+        "cycleway" => return 2,
+        "trail" | "track" | "path" => 3,
+        "elevator" | "platform" | "corridor" => 4,
+        "bus_stop" | "bridleway" | "steps" | "pedestrian" | "footway" => return 4,
+        "unclassified" => return 5,
+        "residential" | "living_street" => return 5,
+        "service" | "road" => return 5,
+        "razed" | "abandoned" | "disused" | "construction" | "proposed" => 100,
+        _ => return 5,
+    }
+}
+
 fn main() {
     let mut ways = Vec::<Way>::new();
     let mut nodes = Vec::<Node>::new();
@@ -136,6 +166,10 @@ fn main() {
             for way in groups::ways(&group, &block) {
                 if way.tags.contains_key("highway") {
                     let highway = way.tags.get("highway").unwrap().trim();
+                    let kind = get_street_kind(highway);
+                    if kind == 100 {
+                        continue;
+                    }
                     let mut max_speed: &str = "";
                     if way.tags.contains_key("maxspeed") {
                         max_speed = way.tags.get("maxspeed").unwrap().trim();
@@ -167,8 +201,7 @@ fn main() {
                             target: id,
                             speed: speed,
                             distance: 0,
-                            // TODO add what kind of street it is
-                            kind: 1,
+                            kind: kind,
                         });
                         prev_id = id;
                     }
