@@ -64,16 +64,12 @@ fn query(request: web::Json<Query>, dijkstra: web::Data<Graph>) -> web::Json<Res
     // println!("Start: {},{}", start.latitude, start.longitude);
     // println!("End: {},{}", end.latitude, end.longitude);
     // println!("use_car: {}, by_distance: {}", use_car, by_distance);
-    let timing = Instant::now();
 
     // search for clicked points
     let start_id: usize = dijkstra.get_point_id(start.latitude, start.longitude);
     let end_id: usize = dijkstra.get_point_id(end.latitude, end.longitude);
 
-    println!("### duration for get_point_id(): {:?}", timing.elapsed());
-
     let timing = Instant::now();
-
     let tmp = dijkstra.find_path(start_id, end_id, use_car, by_distance);
     println!("### duration for find_path(): {:?}", timing.elapsed());
 
