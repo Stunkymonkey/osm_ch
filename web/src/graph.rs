@@ -139,7 +139,6 @@ impl Graph {
             node: start,
             cost: 0,
         });
-        // let mut counter: usize = 0;
 
         while let Some(State { node, cost }) = heap.pop() {
             if node == end {
@@ -151,7 +150,6 @@ impl Graph {
                     current_dist = dist[prev];
                 }
                 path.reverse();
-                // println!("zero-counter {:?}", counter);
                 return Some((path, cost as f32 / COST_MULTIPLICATOR as f32));
             }
 
@@ -165,9 +163,6 @@ impl Graph {
                     node: current_way.target,
                     cost: cost + self.get_edge_weight(current_way, use_distance),
                 };
-                // if next.cost < 1 {
-                //     counter += 1;
-                // }
                 if next.cost < dist[next.node].0 {
                     dist[next.node] = (next.cost, Some(node));
                     heap.push(next);
