@@ -85,8 +85,14 @@ impl Graph {
             if way.speed == 0 {
                 return way.distance;
             }
-            // TODO fix speed with correct travel_type
-            return way.distance / way.speed;
+            let speed = match travel_type {
+                0 => way.speed,
+                1 if way.speed <= 20 => way.speed,
+                1 if way.speed >= 20 => 20,
+                2 => 7,
+                _ => unreachable!(),
+            };
+            return way.distance / speed;
         }
     }
 
