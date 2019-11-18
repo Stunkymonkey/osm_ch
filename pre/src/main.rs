@@ -55,23 +55,23 @@ fn parse_speed(max_speed: &str, highway: &str) -> usize {
 
 /// resolves the int value from a dirty string that can't be resolved by default parsing
 fn resolve_max_speed(s: &str) -> Result<usize, &str> {
-    match s {
-        "DE:motorway" => return Ok(120),
-        "DE:rural" | "AT:rural" => return Ok(100),
-        "DE:urban" | "AT:urban" | "CZ:urban" => return Ok(50),
-        "maxspeed=50" => return Ok(50),
-        "50;" | "50b" => return Ok(50),
-        "DE:living_street" => return Ok(30),
-        "30 kph" => return Ok(30),
-        "zone:maxspeed=de:30" => return Ok(30),
-        "DE:zone:30" => return Ok(30),
-        "DE:zone30" => return Ok(30),
-        "30 mph" => return Ok(30),
-        "20:forward" => return Ok(20),
-        "10 mph" => return Ok(10),
-        "5 mph" => return Ok(7),
-        "DE:walk" | "walk" | "Schrittgeschwindigkeit" => return Ok(7),
-        _ => return Err("none"),
+    return match s {
+        "DE:motorway" => Ok(120),
+        "DE:rural" | "AT:rural" => Ok(100),
+        "DE:urban" | "AT:urban" | "CZ:urban" => Ok(50),
+        "maxspeed=50" => Ok(50),
+        "50;" | "50b" => Ok(50),
+        "DE:living_street" => Ok(30),
+        "30 kph" => Ok(30),
+        "zone:maxspeed=de:30" => Ok(30),
+        "DE:zone:30" => Ok(30),
+        "DE:zone30" => Ok(30),
+        "30 mph" => Ok(30),
+        "20:forward" => Ok(20),
+        "10 mph" => Ok(10),
+        "5 mph" => Ok(7),
+        "DE:walk" | "walk" | "Schrittgeschwindigkeit" => Ok(7),
+        _ => Err("none"),
     };
 }
 
@@ -79,25 +79,22 @@ fn resolve_max_speed(s: &str) -> Result<usize, &str> {
 // infos from https://wiki.openstreetmap.org/wiki/Key:highway
 // TODO check if more types can be added
 fn aproximate_speed_limit(s: &str) -> usize {
-    match s {
-        "motorway" => return 120,
-        "motorway_link" => return 60,
-        "trunk" => return 100,
-        "trunk_link" => return 50,
-        "primary" => return 60,
-        "primary_link" => return 50,
-        "secondary" | "secondary_link" => return 50,
-        "tertiary" | "tertiary_link" => return 50,
-        "unclassified" => return 40,
-        "residential" => return 30,
-        "track" | "service" => return 10,
-        "living_street" => return 7,
-        "path" | "walk" | "footway" => return 4,
-        _ => {
-            // println!("speed limit {:?}", s);
-            return 50;
-        }
-    }
+    return match s {
+        "motorway" => 120,
+        "motorway_link" => 60,
+        "trunk" => 100,
+        "trunk_link" => 50,
+        "primary" => 60,
+        "primary_link" => 50,
+        "secondary" | "secondary_link" => 50,
+        "tertiary" | "tertiary_link" => 50,
+        "unclassified" => 40,
+        "residential" => 30,
+        "track" | "service" => 10,
+        "living_street" => 7,
+        "path" | "walk" | "footway" => 4,
+        _ => 50,
+    };
 }
 
 /// get what kind of street it is:
