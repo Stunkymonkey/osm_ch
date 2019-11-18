@@ -71,8 +71,10 @@ fn query(request: web::Json<Query>, dijkstra: web::Data<Graph>) -> web::Json<Res
     // println!("travel_type: {}, by_distance: {}", travel_type, by_distance);
 
     // search for clicked points
+    let timing_find = Instant::now();
     let start_id: usize = dijkstra.get_point_id(start.latitude, start.longitude, travel_type);
     let end_id: usize = dijkstra.get_point_id(end.latitude, end.longitude, travel_type);
+    println!("### duration for get_point_id(): {:?}", timing_find.elapsed());
 
     let timing = Instant::now();
     let tmp = dijkstra.find_path(start_id, end_id, travel_type, by_distance);

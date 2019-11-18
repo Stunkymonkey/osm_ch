@@ -99,27 +99,35 @@ impl Graph {
     /// returns node_ids in adjacent grid cells
     /// goes from most inner cell to cells with distance 1 to n until a node is found
     fn get_adjacent_node_ids(&self, lat: f32, lng: f32) -> Vec<usize> {
-        let lat_grid = (lat * GRID_MULTIPLICATOR as f32) as usize;
-        let lng_grid = (lng * GRID_MULTIPLICATOR as f32) as usize;
+        let lat_grid = (lat * GRID_MULTIPLICATOR as f32) as i32;
+        let lng_grid = (lng * GRID_MULTIPLICATOR as f32) as i32;
         let mut node_ids = Vec::<usize>::new();
-        match self.grid.get(&(lat_grid, lng_grid)) {
+        match self.grid.get(&(lat_grid as usize, lng_grid as usize)) {
             Some(adjacent_node_ids) => node_ids.extend(adjacent_node_ids),
             None => (),
         }
-        let mut in_dist: usize = 1;
+        let mut in_dist: i32 = 1;
         loop {
-            for x in lat_grid - in_dist..lat_grid + in_dist + 1 {
-                for y in lng_grid - in_dist..lng_grid + in_dist + 1 {
-                    if (x < lat_grid + in_dist || x > lat_grid - in_dist)
-                        && (y < lng_grid - in_dist || y > lng_grid + in_dist)
-                    {
-                        // both coordinates are bigger or smaller than the outer bounds => in inner square => already investigated
-                        continue;
-                    }
-                    match self.grid.get(&(x, y)) {
-                        Some(adjacent_node_ids) => node_ids.extend(adjacent_node_ids),
-                        None => continue,
-                    }
+            for i in -in_dist..in_dist {
+                // top row left to right (increasing x, fix y)
+                match self.grid.get(&((lat_grid+i) as usize, (lng_grid+in_dist) as usize)) {
+                    Some(adjacent_node_ids) => node_ids.extend(adjacent_node_ids),
+                    None => continue,
+                }
+                // right column top to bottom (fix x, decreasing y)
+                match self.grid.get(&((lat_grid+in_dist) as usize, (lng_grid-i) as usize)) {
+                    Some(adjacent_node_ids) => node_ids.extend(adjacent_node_ids),
+                    None => continue,
+                }
+                // bottom row right to left (decreasing x, fix y)
+                match self.grid.get(&((lat_grid-i) as usize, (lng_grid-in_dist) as usize)) {
+                    Some(adjacent_node_ids) => node_ids.extend(adjacent_node_ids),
+                    None => continue,
+                }
+                // left column bottom to top (fix x, increasing y)
+                match self.grid.get(&((lat_grid-in_dist) as usize, (lng_grid+i) as usize)) {
+                    Some(adjacent_node_ids) => node_ids.extend(adjacent_node_ids),
+                    None => continue,
                 }
             }
             if node_ids.len() > 0 {
