@@ -107,24 +107,33 @@ fn aproximate_speed_limit(s: &str) -> usize {
 5 = all
 100 = skip
 */
-fn get_street_kind(s: &str) -> usize {
-    match s {
-        "motorway" | "motorway_link" => return 0,
-        "trunk" | "trunk_link" => return 0,
+fn get_street_type(s: &str, has_sidewalk: bool) -> usize {
+    let mut result = match s {
+        "motorway" | "motorway_link" => 0,
+        "trunk" | "trunk_link" => 0,
         "raceway" | "services" | "rest_area" => 0,
-        "primary" | "primary_link" => return 1,
-        "secondary" | "secondary_link" => return 1,
-        "tertiary" | "tertiary_link" => return 1,
-        "cycleway" => return 2,
+        "primary" | "primary_link" => 1,
+        "secondary" | "secondary_link" => 1,
+        "tertiary" | "tertiary_link" => 1,
+        "cycleway" => 2,
         "trail" | "track" | "path" => 3,
         "elevator" | "platform" | "corridor" => 4,
-        "bus_stop" | "bridleway" | "steps" | "pedestrian" | "footway" => return 4,
-        "unclassified" => return 5,
-        "residential" | "living_street" => return 5,
-        "service" | "road" => return 5,
+        "bus_stop" | "bridleway" | "steps" | "pedestrian" | "footway" => 4,
+        "unclassified" => 5,
+        "residential" | "living_street" => 5,
+        "service" | "road" => 5,
         "razed" | "abandoned" | "disused" | "construction" | "proposed" => 100,
-        _ => return 5,
+        _ => 5,
+    };
+    if has_sidewalk {
+        result = match result {
+            1 => 5,
+            2 => 3,
+            3 => 5,
+            _ => result,
+        }
     }
+    return result;
 }
 
 fn main() {
@@ -163,7 +172,14 @@ fn main() {
             for way in groups::ways(&group, &block) {
                 if way.tags.contains_key("highway") {
                     let highway = way.tags.get("highway").unwrap().trim();
-                    let travel_type = get_street_kind(highway);
+                    let mut has_sidewalk: bool = false;
+                    if way.tags.contains_key("sidewalk") {
+                        has_sidewalk = match way.tags.get("sidewalk").unwrap().trim() {
+                            "None" | "none" | "No" | "no" => false,
+                            _ => true,
+                        }
+                    }
+                    let travel_type = get_street_type(highway, has_sidewalk);
                     if travel_type == 100 {
                         continue;
                     }
