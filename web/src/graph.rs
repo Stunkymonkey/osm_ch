@@ -24,12 +24,14 @@ struct State {
     node: usize,
     cost: usize,
 }
+
 // Manually implement Ord so we get a min-heap instead of a max-heap
 impl Ord for State {
     fn cmp(&self, other: &Self) -> Ordering {
         other.cost.cmp(&self.cost)
     }
 }
+
 impl PartialOrd for State {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
@@ -53,10 +55,10 @@ impl Graph {
 
     /// returns closes point of given long & lat
     pub fn get_point_id(&self, lat: f32, long: f32, travel_type: usize) -> usize {
-        // TODO check if travel_type can be used
         let mut min_distance: f32 = std::f32::MAX;
         let mut min_distance_id: usize = 0;
-        let adjacent_nodes = self.get_adjacent_node_ids(lat, long);
+        let allowed_types = self.get_allowed_types(travel_type);
+        let adjacent_nodes = self.get_adjacent_node_ids(lat, long, &allowed_types);
         for node_id in adjacent_nodes {
             match self.nodes.get(node_id) {
                 Some(node) => {
@@ -66,10 +68,19 @@ impl Graph {
                         min_distance_id = node_id;
                     }
                 }
-                None => continue,
+                None => continue
             }
         }
         return min_distance_id;
+    }
+
+    fn get_allowed_types(&self, road_type: usize) -> Vec<usize> {
+        return match road_type {
+            0 => vec![0, 1, 5],
+            1 => vec![1, 2, 3, 5],
+            2 => vec![4, 5],
+            _ => vec![5]
+        };
     }
 
     /// converts node ids to node-coordinates
@@ -96,44 +107,49 @@ impl Graph {
         }
     }
 
+    fn is_valid_node_for_travel_type(&self, node_id: usize, allowed_types: &Vec<usize>) -> bool {
+        let incl_start = self.offset[node_id];
+        let excl_end = self.offset[node_id + 1];
+        for i in incl_start..excl_end {
+            let edge = &self.ways[i];
+            if allowed_types.contains(&edge.travel_type) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    fn add_valid_node_ids_from_cell(&self, node_ids: &mut Vec<usize>, cell: &(usize, usize), allowed_types: &Vec<usize>) {
+        match self.grid.get(cell) {
+            Some(adjacent_node_ids) => node_ids.extend(adjacent_node_ids.iter().filter(|&&x| self.is_valid_node_for_travel_type(x, allowed_types)).collect::<Vec<&usize>>()),
+            None => return
+        }
+    }
+
+
     /// returns node_ids in adjacent grid cells
     /// goes from most inner cell to cells with distance 1 to n until a node is found
-    fn get_adjacent_node_ids(&self, lat: f32, lng: f32) -> Vec<usize> {
+    fn get_adjacent_node_ids(&self, lat: f32, lng: f32, allowed_types: &Vec<usize>) -> Vec<usize> {
         let lat_grid = (lat * GRID_MULTIPLICATOR as f32) as i32;
         let lng_grid = (lng * GRID_MULTIPLICATOR as f32) as i32;
         let mut node_ids = Vec::<usize>::new();
-        match self.grid.get(&(lat_grid as usize, lng_grid as usize)) {
-            Some(adjacent_node_ids) => node_ids.extend(adjacent_node_ids),
-            None => (),
-        }
+        self.add_valid_node_ids_from_cell(&mut node_ids, &(lat_grid as usize, lng_grid as usize), allowed_types);
         let mut in_dist: i32 = 1;
         loop {
             for i in -in_dist..in_dist {
                 // top row left to right (increasing x, fix y)
-                match self.grid.get(&((lat_grid+i) as usize, (lng_grid+in_dist) as usize)) {
-                    Some(adjacent_node_ids) => node_ids.extend(adjacent_node_ids),
-                    None => continue,
-                }
+                self.add_valid_node_ids_from_cell(&mut node_ids, &((lat_grid + i) as usize, (lng_grid + in_dist) as usize), allowed_types);
                 // right column top to bottom (fix x, decreasing y)
-                match self.grid.get(&((lat_grid+in_dist) as usize, (lng_grid-i) as usize)) {
-                    Some(adjacent_node_ids) => node_ids.extend(adjacent_node_ids),
-                    None => continue,
-                }
+                self.add_valid_node_ids_from_cell(&mut node_ids, &((lat_grid + in_dist) as usize, (lng_grid - i) as usize), allowed_types);
                 // bottom row right to left (decreasing x, fix y)
-                match self.grid.get(&((lat_grid-i) as usize, (lng_grid-in_dist) as usize)) {
-                    Some(adjacent_node_ids) => node_ids.extend(adjacent_node_ids),
-                    None => continue,
-                }
+                self.add_valid_node_ids_from_cell(&mut node_ids, &((lat_grid - i) as usize, (lng_grid - in_dist) as usize), allowed_types);
                 // left column bottom to top (fix x, increasing y)
-                match self.grid.get(&((lat_grid-in_dist) as usize, (lng_grid+i) as usize)) {
-                    Some(adjacent_node_ids) => node_ids.extend(adjacent_node_ids),
-                    None => continue,
-                }
+                self.add_valid_node_ids_from_cell(&mut node_ids, &((lat_grid - in_dist) as usize, (lng_grid + i) as usize), allowed_types);
             }
             if node_ids.len() > 0 {
                 return node_ids;
             } else {
-                // search in next level
+                // search in next level cells
                 in_dist += 1;
             }
         }
