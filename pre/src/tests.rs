@@ -3,70 +3,7 @@ use super::*;
 #[test]
 fn fill_offset_test() {
     let mut offset_test = vec![0; 8];
-    let mut ways = Vec::<Way>::new();
-    ways.push(Way {
-        source: 0,
-        target: 1,
-        speed: 2,
-        distance: 2,
-        travel_type: 1,
-    });
-    ways.push(Way {
-        source: 0,
-        target: 1,
-        speed: 2,
-        distance: 2,
-        travel_type: 1,
-    });
-    ways.push(Way {
-        source: 0,
-        target: 1,
-        speed: 2,
-        distance: 2,
-        travel_type: 1,
-    });
-    ways.push(Way {
-        source: 2,
-        target: 1,
-        speed: 2,
-        distance: 2,
-        travel_type: 1,
-    });
-    ways.push(Way {
-        source: 3,
-        target: 1,
-        speed: 2,
-        distance: 2,
-        travel_type: 1,
-    });
-    ways.push(Way {
-        source: 4,
-        target: 1,
-        speed: 2,
-        distance: 2,
-        travel_type: 1,
-    });
-    ways.push(Way {
-        source: 4,
-        target: 1,
-        speed: 2,
-        distance: 2,
-        travel_type: 1,
-    });
-    ways.push(Way {
-        source: 4,
-        target: 1,
-        speed: 2,
-        distance: 2,
-        travel_type: 1,
-    });
-    ways.push(Way {
-        source: 6,
-        target: 1,
-        speed: 2,
-        distance: 2,
-        travel_type: 1,
-    });
+    let mut ways = vec![0, 0, 0, 2, 3, 4, 4, 4, 6];
     fill_offset(&ways, &mut offset_test);
 
     println!("{:?}", offset_test);
