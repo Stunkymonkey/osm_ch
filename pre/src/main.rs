@@ -17,6 +17,7 @@ use std::io::BufWriter;
 use std::path::Path;
 
 use constants::*;
+use min_heap::*;
 use osm_parsing::*;
 use structs::*;
 
@@ -217,9 +218,11 @@ fn main() {
     fill_offset(sources, &mut up_offset);
 
     // generate down edges, but without sorting edges
+    // first collect offsets
     let targets: Vec<EdgeId> = edges.iter().map(|x| x.target).rev().collect();
     fill_offset(targets, &mut down_offset);
     let mut down_index = vec![0; edges.len()];
+    // fill offsets if not already filled
     for (i, edge) in edges.iter().enumerate() {
         let start_index = down_offset[edge.target];
         let end_index = down_offset[edge.target + 1];
@@ -241,6 +244,11 @@ fn main() {
     */
 
     // contract edges
+    /*
+        ED is calculated as follows: ED = node_degree - number_of_shortcuts
+            node_degree is the amount of edges connected to the node
+            number_of_shortcuts is the amount of shortcuts that has to be created, should the node be removed
+    */
     // ordering
     let mut edge_distance = vec![0; amount_nodes];
     let mut contracted_neighbors = vec![0; amount_nodes];
