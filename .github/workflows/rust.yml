@@ -9,17 +9,13 @@ jobs:
     - uses: actions/checkout@v1
     - name: Build pre
       run: |
-        cd ./pre/
-        cargo build --verbose
+        cargo build --verbose -p osm-dijkstra-pre
     - name: Build web
       run: |
-        cd ./web/
-        cargo build --verbose
+        cargo build --verbose -p osm-dijkstra-web
     - name: Run pre tests
       run: |
-        cd ./pre/
-        cargo test --verbose
+        cargo test --verbose -p osm-dijkstra-pre
     - name: Run web tests
       run: |
-        cd ./web/
-        cargo test --verbose
+        cargo test --verbose -p osm-dijkstra-web
