@@ -4,7 +4,7 @@ use super::*;
 fn fill_offset_test() {
     let mut offset_test = vec![0; 8];
     let mut ways = vec![0, 0, 0, 2, 3, 4, 4, 4, 6];
-    fill_offset(&ways, &mut offset_test);
+    fill_offset(ways, &mut offset_test);
 
     println!("{:?}", offset_test);
 
