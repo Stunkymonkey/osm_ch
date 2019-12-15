@@ -74,7 +74,10 @@ fn query(request: web::Json<Query>, dijkstra: web::Data<Graph>) -> web::Json<Res
     let timing_find = Instant::now();
     let start_id: usize = dijkstra.get_point_id(start.latitude, start.longitude, travel_type);
     let end_id: usize = dijkstra.get_point_id(end.latitude, end.longitude, travel_type);
-    println!("### duration for get_point_id(): {:?}", timing_find.elapsed());
+    println!(
+        "### duration for get_point_id(): {:?}",
+        timing_find.elapsed()
+    );
 
     let timing = Instant::now();
     let tmp = dijkstra.find_path(start_id, end_id, travel_type, by_distance);
@@ -119,7 +122,7 @@ fn main() {
     // check if arguments are right
     let args: Vec<_> = std::env::args().collect();
     if args.len() != 2 {
-        println!("Usage: {} pbf.fmi_file", args[0]);
+        println!("Usage: {} pbf.fmi-file", args[0]);
         return;
     }
 
@@ -131,15 +134,15 @@ fn main() {
     }
 
     // read file
-    let mut f = BufReader::new(File::open(filename).unwrap());
-    let input: Input = deserialize_from(&mut f).unwrap();
+    let mut reader = BufReader::new(File::open(filename).unwrap());
+    let input: Input = deserialize_from(&mut reader).unwrap();
     let d = Graph::new(input.nodes, input.ways, input.offset, input.grid);
 
     let graph = web::Data::new(d);
 
     // check for static-html folder
-    if !Path::new("./static").exists() {
-        eprintln!("./static/ directory not found");
+    if !Path::new("./html").exists() {
+        eprintln!("./html/ directory not found");
         std::process::exit(1);
     }
 
