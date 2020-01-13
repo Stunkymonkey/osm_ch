@@ -3,15 +3,15 @@ use std::cmp::Ordering;
 
 #[derive(Copy, Clone, Eq)]
 pub struct MinHeapItem {
-    pub node: NodeId,
     pub weight: Weight,
+    pub node: NodeId,
 }
 
 // Manually implement Ord so we get a min-heap instead of a max-heap
 impl MinHeapItem {
     pub fn new(node: NodeId, weight: Weight) -> MinHeapItem {
         if weight != weight {
-            panic!("weight must not be NaN");
+            panic!("weight can not be NaN");
         }
         MinHeapItem { node, weight }
     }
