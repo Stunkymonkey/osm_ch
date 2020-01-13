@@ -5,7 +5,6 @@ use structs::*;
 use visited_list::*;
 
 pub struct Dijkstra {
-    amount_nodes: NodeId,
     dist: Vec<(NodeId, Option<Weight>)>,
     visited: VisitedList,
     heap: BinaryHeap<MinHeapItem>,
@@ -22,7 +21,6 @@ impl Dijkstra {
         let visited = VisitedList::new(amount_nodes);
         let dist = vec![(std::usize::MAX, None); amount_nodes];
         Dijkstra {
-            amount_nodes,
             dist: dist,
             visited: visited,
             heap: heap,
@@ -59,10 +57,7 @@ impl Dijkstra {
         if start != self.start_node {
             self.heap.clear();
             self.visited.invalidate_all();
-            self.heap.push(MinHeapItem {
-                weight: 0,
-                node: start,
-            });
+            self.heap.push(MinHeapItem::new(start, 0));
         }
         if self.visited.is_visited(end) {
             return self.resolve_path(end, self.dist[end].0);
@@ -86,10 +81,7 @@ impl Dijkstra {
                     continue;
                 }
                 // calculate costs
-                let next = MinHeapItem {
-                    node: current_way.target,
-                    weight: weight + current_way.weight,
-                };
+                let next = MinHeapItem::new(current_way.target, weight + current_way.weight);
                 // add way to heap
                 if next.weight < self.dist[next.node].0 {
                     self.dist[next.node] = (next.weight, Some(node));

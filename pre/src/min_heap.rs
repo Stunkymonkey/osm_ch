@@ -3,8 +3,8 @@ use std::cmp::Ordering;
 
 #[derive(Copy, Clone, Eq)]
 pub struct MinHeapItem {
-    pub weight: Weight,
     pub node: NodeId,
+    pub weight: Weight,
 }
 
 // Manually implement Ord so we get a min-heap instead of a max-heap
