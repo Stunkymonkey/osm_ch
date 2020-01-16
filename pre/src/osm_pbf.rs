@@ -132,26 +132,10 @@ pub fn is_sub_travel_type(travel_type: TravelType) -> bool {
             TravelType::Car | TravelType::CarBicycle | TravelType::All => return true,
             _ => return false,
         },
-        TravelType::CarBicycle => match travel_type {
-            TravelType::Car
-            | TravelType::CarBicycle
-            | TravelType::Bicycle
-            | TravelType::BicyclePedestrian
-            | TravelType::All => return true,
-            _ => return false,
-        },
         TravelType::Bicycle => match travel_type {
             TravelType::CarBicycle
             | TravelType::Bicycle
             | TravelType::BicyclePedestrian
-            | TravelType::All => return true,
-            _ => return false,
-        },
-        TravelType::BicyclePedestrian => match travel_type {
-            TravelType::CarBicycle
-            | TravelType::Bicycle
-            | TravelType::BicyclePedestrian
-            | TravelType::Pedestrian
             | TravelType::All => return true,
             _ => return false,
         },
@@ -161,10 +145,6 @@ pub fn is_sub_travel_type(travel_type: TravelType) -> bool {
             }
             _ => return false,
         },
-        TravelType::All => match travel_type {
-            TravelType::Undefined => return false,
-            _ => return true,
-        },
-        TravelType::Undefined | _ => panic!("Senseless TravelType is set"),
+        _ => panic!("Invalid TravelType is set"),
     }
 }
