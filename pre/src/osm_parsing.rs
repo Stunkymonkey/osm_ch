@@ -1,3 +1,6 @@
+use super::*;
+
+// parse max-speed to valid weight (fallback is highway-tag)
 pub fn parse_speed(max_speed: &str, highway: &str) -> usize {
     match max_speed.parse::<usize>() {
         Ok(ok) => return ok,
@@ -55,38 +58,30 @@ fn aproximate_speed_limit(s: &str) -> usize {
 }
 
 /// get what kind of street it is:
-/* infos from https://wiki.openstreetmap.org/wiki/Key:highway
-0 = car only
-1 = car and bicycle
-2 = bicycle
-3 = bicycle and pedestrian
-4 = pedestrian
-5 = all
-100 = skip
-*/
-pub fn get_street_type(s: &str, has_sidewalk: bool) -> usize {
+// infos from https://wiki.openstreetmap.org/wiki/Key:highway
+pub fn get_street_type(s: &str, has_sidewalk: bool) -> TravelType {
     let mut result = match s {
-        "motorway" | "motorway_link" => 0,
-        "trunk" | "trunk_link" => 0,
-        "raceway" | "services" | "rest_area" => 0,
-        "primary" | "primary_link" => 1,
-        "secondary" | "secondary_link" => 1,
-        "tertiary" | "tertiary_link" => 1,
-        "cycleway" => 2,
-        "trail" | "track" | "path" => 3,
-        "elevator" | "platform" | "corridor" => 4,
-        "bus_stop" | "bridleway" | "steps" | "pedestrian" | "footway" => 4,
-        "unclassified" => 5,
-        "residential" | "living_street" => 5,
-        "service" | "road" => 5,
-        "razed" | "abandoned" | "disused" | "construction" | "proposed" => 100,
-        _ => 5,
+        "motorway" | "motorway_link" => TravelType::Car,
+        "trunk" | "trunk_link" => TravelType::Car,
+        "raceway" | "services" | "rest_area" => TravelType::Car,
+        "primary" | "primary_link" => TravelType::CarBicycle,
+        "secondary" | "secondary_link" => TravelType::CarBicycle,
+        "tertiary" | "tertiary_link" => TravelType::CarBicycle,
+        "cycleway" => TravelType::Bicycle,
+        "trail" | "track" | "path" => TravelType::BicyclePedestrian,
+        "elevator" | "platform" | "corridor" => TravelType::Pedestrian,
+        "bus_stop" | "bridleway" | "steps" | "pedestrian" | "footway" => TravelType::Pedestrian,
+        "unclassified" => TravelType::All,
+        "residential" | "living_street" => TravelType::All,
+        "service" | "road" => TravelType::All,
+        "razed" | "abandoned" | "disused" | "construction" | "proposed" => TravelType::Undefined,
+        _ => TravelType::All,
     };
     if has_sidewalk {
         result = match result {
-            1 => 5,
-            2 => 3,
-            3 => 5,
+            TravelType::CarBicycle => TravelType::All,
+            TravelType::Bicycle => TravelType::BicyclePedestrian,
+            TravelType::BicyclePedestrian => TravelType::All,
             _ => result,
         }
     }
