@@ -1,4 +1,4 @@
-use constants::*;
+use crate::constants::*;
 
 pub struct VisitedList {
     nodes: Vec<Weight>,
@@ -21,12 +21,27 @@ impl VisitedList {
         self.nodes[node] = self.visited_flag;
     }
 
-    pub fn invalidate_all(&mut self) {
+    pub fn unvisit_all(&mut self) {
         if self.visited_flag == std::usize::MAX {
             self.nodes = vec![0; self.nodes.len()];
             self.visited_flag = 1;
         } else {
             self.visited_flag += 1;
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn set_visited() {
+        let mut visited = VisitedList::new(42);
+        assert!(!visited.is_visited(17));
+        visited.set_visited(17);
+        assert!(visited.is_visited(17));
+        visited.unvisit_all();
+        assert!(!visited.is_visited(17));
     }
 }
