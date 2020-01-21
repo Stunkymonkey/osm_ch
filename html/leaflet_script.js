@@ -37,7 +37,6 @@ function setStart() {
     let coords = tmpMarker.getLatLng();
     let lat = Math.round(coords.lat * 1000) / 1000;
     let lng = Math.round(coords.lng * 1000) / 1000;
-    document.getElementById("start-text").innerHTML = "latitude: " + lat.toString() + "<br> longitude: " + lng.toString();
     if (startMarker) {
         map.removeLayer(startMarker);
     }
@@ -49,13 +48,13 @@ function setStart() {
     if (typeof last_path === 'object') {
         map.removeLayer(last_path);
     }
+    query();
 }
 
 function setEnd() {
     let coords = tmpMarker.getLatLng();
     let lat = Math.round(coords.lat * 1000) / 1000;
     let lng = Math.round(coords.lng * 1000) / 1000;
-    document.getElementById("end-text").innerHTML = "latitude: " + lat.toString() + "<br> longitude: " + lng.toString();
     if (endMarker) {
         map.removeLayer(endMarker);
     }
@@ -67,6 +66,7 @@ function setEnd() {
     if (typeof last_path === 'object') {
         map.removeLayer(last_path);
     }
+    query();
 }
 
 function query() {
@@ -92,8 +92,8 @@ function query() {
         if (xhr.readyState === 4 && xhr.status === 200) {
             var json = JSON.parse(xhr.responseText);
             if (json.path != "") {
-                printPath(json.path);
-                show_result(json.cost);
+                printPath(json);
+                show_result(json.properties.weight);
             } else {
                 show_no_path_found();
             }
@@ -102,8 +102,6 @@ function query() {
         }
     };
 
-    var travel_type = document.getElementById("travel-type").value;
-    var optimization = document.getElementById("optimization").value == "distance";
     var body = {
         "start": {
             "latitude": startPoint.lat,
@@ -112,35 +110,16 @@ function query() {
         "end": {
             "latitude": endPoint.lat,
             "longitude": endPoint.lng
-        },
-        "travel_type": travel_type,
-        "by_distance": optimization,
+        }
     };
     var data = JSON.stringify(body);
     // console.log("request: " + data);
     xhr.send(data);
 }
 
-
 function printPath(path) {
-    // create [lat, lng] array for leaflet map
-    let points = path.map(function (node) {
-        return [node.latitude, node.longitude]
-    });
-    off_track_start = L.polyline([startPoint, points[0]], {
-		'dashArray': 10,
-		'weight': 2
-    });
-    start_to_end = L.polyline(points);
-    off_track_end = L.polyline([points[points.length - 1], endPoint], {
-		'dashArray': 10,
-		'weight': 2
-	});
-
-    last_path = L.layerGroup([off_track_start, start_to_end, off_track_end]);
-
-    map.addLayer(last_path);
-    map.fitBounds([startPoint, endPoint]);
+    //TODO check if works
+    map.addLayer(L.geoJSON(path));
 }
 
 

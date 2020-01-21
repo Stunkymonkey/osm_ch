@@ -9,46 +9,10 @@
 		<title>osm-dijkstra</title>
 	</head>
 	<body>
-		<div id="info">
-			<div class="input-wrapper">
-				<label-big for="start-time">
-					<h4>Start</h4>
-				</label-big>
-				<br>
-				<div id="start-text">click on the map and select it</div>
-			</div>
-			<div class="input-wrapper">
-				<label-big for="end-time">
-					<h4>End:</h4>
-				</label-big>
-				<br>
-				<div id="end-text">click on the map and select it</div>
-			</div>
-			<div class="input-wrapper">
-				<label-big for="end-time">
-					<h4>Travel by</h4>
-				</label-big>
-				<select id="travel-type">
-					<option value="car">car</option>
-					<option value="bicycle">bicycle</option>
-					<option value="foot">foot</option>
-				</select>
-			</div>
-			<div class="input-wrapper">
-				<label-big for="end-time">
-					<h4>Optimize for</h4>
-				</label-big>
-				<select id="optimization">
-					<option value="time">time</option>
-					<option value="distance">distance</option>
-				</select>
-			</div>
-			<button class="info-button search" onclick="query()">Find Path</button>
-		</div>
 		<div id="map"></div>
 		<div class="toast" id="invalid-request" style="display:none" onclick="hide_invalid_request()">Invalid Request</div>
 		<div class="toast" id="no-path-found" style="display:none" onclick="hide_no_path_found()">No Path found</div>
-		<div class="toast" id="select-start-and-end" style="display:none" onclick="hide_select_start_and_end()">Please select start and end</div>
+		<div class="toast" id="select-start-and-end" style="display:block" onclick="hide_select_start_and_end()">Please select start and end on the map</div>
 		<div class="toast" id="result" style="display:none" onclick="hide_result()">Resulting cost</div>
 		<script src="leaflet_script.js"></script>
 	</body>

@@ -12,21 +12,6 @@ body {
 	width: 100%;
 }
 
-#info {
-	position: absolute;
-	top: 8px;
-	right: 8px;
-	padding: 20px;
-	background: rgba(255,255,255,0.9);
-	color: #282828;
-	border-radius: 5px;
-	width: 220px;
-	z-index: 1000;
-}
-#info h4 {
-	margin: 0 0 0;
-}
-
 .toast {
 	min-width: 250px;
 	margin-left: -125px;
@@ -39,21 +24,6 @@ body {
 	z-index: 1000;
 	left: 50%;
 	bottom: 30px;
-}
-
-.input-wrapper {
-	margin: 0.8em 0;
-}
-
-.search {
-	display: block;
-	background-color: #2B5696;
-	color: white;
-	border-style: none;
-	border-radius: 3px;
-	padding: 5px 10px;
-	margin-top: 0.8em;
-	width: 100%;
 }
 
 .set-point {
@@ -70,21 +40,4 @@ body {
 
 .set-end {
 	background-color: #CB2B3E;
-}
-
-label{
-	display: inline-block;
-	width: 110px;
-	font-size: 0.9rem;
-}
-label-big{
-	display: inline-block;
-	width: 110px;
-}
-
-input[type=submit] {
-	display: block;
-}
-select, option {
-    width:100px;
 }
