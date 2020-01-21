@@ -2,12 +2,12 @@
 name = "osm_dijkstra_pre"
 version = "1.0.0"
 authors = [ "Felix Buehler <account@buehler.rocks>" ]
-
+edition = "2018"
 include = [
   "README.md",
   ".gitignore",
   "Cargo.toml",
-  "src/*.rs"
+  "src/*.rs",
 ]
 
 [dependencies]
