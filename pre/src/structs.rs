@@ -1,7 +1,7 @@
 use serde::Serialize;
 use std::cmp::Ordering;
 
-use constants::*;
+use crate::constants::*;
 
 #[derive(Debug, PartialEq)]
 pub enum TravelType {
@@ -14,7 +14,7 @@ pub enum TravelType {
     Undefined,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize)]
 pub enum OptimizeBy {
     Time,
     Distance,
@@ -84,4 +84,5 @@ pub struct FmiFile {
     pub edges: Vec<Way>,
     pub grid_offset: Vec<GridId>,
     pub grid: Vec<NodeId>,
+    pub optimized_by: OptimizeBy,
 }

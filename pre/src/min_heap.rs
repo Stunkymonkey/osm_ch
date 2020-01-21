@@ -1,4 +1,4 @@
-use constants::*;
+use super::*;
 use std::cmp::Ordering;
 
 #[derive(Copy, Clone, Eq)]
