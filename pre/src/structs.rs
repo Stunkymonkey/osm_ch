@@ -76,6 +76,14 @@ pub struct Node {
 }
 
 #[derive(Serialize, Debug)]
+pub struct GridBounds {
+    pub lat_min: f32,
+    pub lat_max: f32,
+    pub lng_min: f32,
+    pub lng_max: f32,
+}
+
+#[derive(Serialize, Debug)]
 pub struct FmiFile {
     pub nodes: Vec<Node>,
     pub up_offset: Vec<EdgeId>,
@@ -84,5 +92,6 @@ pub struct FmiFile {
     pub edges: Vec<Way>,
     pub grid_offset: Vec<GridId>,
     pub grid: Vec<NodeId>,
+    pub grid_bounds: GridBounds,
     pub optimized_by: OptimizeBy,
 }
