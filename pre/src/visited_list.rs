@@ -1,7 +1,8 @@
 use crate::constants::*;
 
 pub struct VisitedList {
-    nodes: Vec<Weight>,
+    // maybe only use a u16 for less memory consumtion
+    nodes: Vec<usize>,
     visited_flag: usize,
 }
 
