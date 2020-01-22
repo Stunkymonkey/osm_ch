@@ -47,8 +47,8 @@ pub fn generate_offsets_unstable(
 
 pub fn generate_offsets(
     edges: &mut Vec<Way>,
-    mut up_offset: &mut Vec<EdgeId>,
-    mut down_offset: &mut Vec<EdgeId>,
+    up_offset: &mut Vec<EdgeId>,
+    down_offset: &mut Vec<EdgeId>,
     amount_nodes: usize,
 ) -> Vec<EdgeId> {
     edges.par_sort_unstable();
