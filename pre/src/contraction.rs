@@ -48,3 +48,68 @@ pub fn contract_node(
     }
     return (shortcuts, used_edges);
 }
+
+pub fn run_contraction(
+    nodes: &mut Vec<Node>,
+    edges: &mut Vec<Way>,
+    up_offset: &mut Vec<EdgeId>,
+    down_offset: &mut Vec<EdgeId>,
+    down_index: &mut Vec<EdgeId>,) {
+    let mut resulting_edges = Vec::<Way>::new();
+
+    // ordering
+    let tmp: Vec<NodeId> = (0..nodes.len()).collect();
+    let mut remaining_nodes: HashSet<NodeId> = HashSet::from_iter(tmp.iter().cloned());
+    let mut heuristic = vec![0; nodes.len()];
+
+    let mut local_minima =
+        ordering::get_local_minima(&heuristic, &up_offset, &down_offset, &down_index);
+
+    // K_NEIGHBORS
+
+    // mark all neighbors as invalid
+    // partition = let (even, odd): (Vec<i32>, Vec<i32>) = a.par_iter().partition(|&n| n % 2 == 0);
+
+    // let evens = numbers.drain_filter(|x| *x % 2 == 0).collect::<Vec<_>>();
+    // let odds = numbers;
+
+    let mut dijkstra: dijkstra::Dijkstra = dijkstra::Dijkstra::new(nodes.len());
+
+    for node in 0..nodes.len() {
+        let (shortcuts, used_edges) = contraction::contract_node(
+            node,
+            &edges,
+            &up_offset,
+            &down_offset,
+            &down_index,
+            &mut dijkstra,
+        );
+        // for edge_id in used_edges.iter().rev() {
+        //     resulting_edges.push(edges[edge_id]);
+        //     edges.remove(edge_id);
+        // }
+        // TODO remove node/edges and reduce edges from remaining graph
+    }
+
+    // while:
+    // (re)calculate heuristic
+    // get all minimas
+    // calculate independent set via local minimas
+    //      pick local minimum
+    //      mark all neighbors as invalid
+    //      ...
+    // contract all valid nodes
+    // collect shortcuts
+    // rebuild graph with new shortcuts
+
+    /*
+    Update Priorities of all Nodes with Simulated Contractions
+    while Remaining Graph not Empty do
+        I ← Independent Node Set
+        E ← Necessary Shortcuts
+        Move I to their Level
+        Insert E into Remaining graph
+        Update Priority of Neighbors of I with Simulated Contractions
+    end while
+    */
+}
