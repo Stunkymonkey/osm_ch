@@ -1,5 +1,5 @@
 # OSM-Dijkstra
-by Felix Bühler and Simon Matejetz
+by Felix Bühler
 
 This project was part of "Lab Course: Algorithms for OSM Data".
 
@@ -13,6 +13,7 @@ this will parse the `*.osm.pbf` file into a `*.osm.pbf.fmi` file, which is neede
 
 - `osmpbfreader` = parsing the pbf file
 - `serde` = serialization
+- `rayon` = parallelization
 - `bincode` = exporting serialization
 
 ### Compilation
@@ -31,6 +32,7 @@ is the webserver which provides the interface. it needs the `*.osm.pbf.fmi`-file
 - `actix-web` = webserver
 - `serde` = serialization
 - `bincode` = exporting serialization
+- `rayon` = parallelization
 - `serde_json` = parsing json
 
 ### Compilation
