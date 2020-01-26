@@ -16,7 +16,6 @@ mod visited_list;
 
 use rayon::prelude::*;
 use actix_web::{middleware, web, App, HttpServer};
-use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::time::Instant;
 
@@ -38,14 +37,17 @@ async fn query(
 
     // search for clicked points
     let grid_time = Instant::now();
-    let start_id: NodeId = grid::get_closest_point(start, &data.nodes, &data.grid_bounds);
-    let end_id: NodeId = grid::get_closest_point(end, &data.nodes, &data.grid_bounds);
+    let start_id: NodeId = grid::get_closest_point(start, &data.nodes, &data.grid, &data.grid_offset, &data.grid_bounds);
+    let end_id: NodeId = grid::get_closest_point(end, &data.nodes, &data.grid, &data.grid_offset, &data.grid_bounds);
     println!("Getting node IDs in: {:?}", grid_time.elapsed());
 
     let dijkstra_time = Instant::now();
     // let tmp = dijkstra.find_path(start_id, end_id);
+    let tmp_start = grid::get_closest_point_stupid(start, &data.nodes);
+    let tmp_end = grid::get_closest_point_stupid(end, &data.nodes);
     let cost: f32 = 1.2;
-    let tmp = Some((vec![400, 300, 200, 100, 500, 600], cost));
+    let tmp = Some((vec![start_id, tmp_start, end_id, tmp_end], cost));
+    println!("equal start {:?} end {:?}", start_id == tmp_start, end_id == tmp_end);
     println!("Getting path in: {:?}", dijkstra_time.elapsed());
 
     let result: Vec<(f32, f32)>;
@@ -88,7 +90,7 @@ async fn query(
 
 #[actix_rt::main]
 async fn main() -> std::io::Result<()> {
-    std::env::set_var("RUST_LOG", "actix_web=debug");
+    std::env::set_var("RUST_LOG", "actix_web=info");
     env_logger::init();
 
     // read file
