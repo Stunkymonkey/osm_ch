@@ -1,95 +1,61 @@
 extern crate actix_files;
+extern crate actix_rt;
 extern crate actix_web;
 extern crate bincode;
 extern crate serde;
+extern crate rayon;
 extern crate serde_json;
 
-mod graph;
+mod constants;
+mod dijkstra;
+mod grid;
+mod helper;
+mod min_heap;
+mod structs;
+mod visited_list;
 
-use actix_files as fs;
+use rayon::prelude::*;
 use actix_web::{middleware, web, App, HttpServer};
-use bincode::deserialize_from;
-use graph::Graph;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::fs::File;
-use std::io::BufReader;
 use std::path::Path;
 use std::time::Instant;
 
-#[derive(Copy, Clone, Deserialize, Debug)]
-pub struct Way {
-    source: usize,
-    target: usize,
-    speed: usize,
-    distance: usize,
-    travel_type: usize,
-}
+use constants::*;
+use dijkstra::Dijkstra;
+use structs::*;
 
-#[derive(Copy, Clone, Deserialize, Serialize, Debug)]
-pub struct Node {
-    latitude: f32,
-    longitude: f32,
-}
-
-#[derive(Deserialize, Debug)]
-struct Input {
-    nodes: Vec<Node>,
-    ways: Vec<Way>,
-    offset: Vec<usize>,
-    grid: HashMap<(usize, usize), Vec<usize>>,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-struct Query {
-    start: Node,
-    end: Node,
-    travel_type: String,
-    by_distance: bool,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-struct Response {
-    path: Vec<Node>,
-    cost: String,
-}
-
-fn query(request: web::Json<Query>, dijkstra: web::Data<Graph>) -> web::Json<Response> {
+async fn query(
+    request: web::Json<Query>,
+    data: web::Data<FmiFile>,
+    dijkstra: web::Data<Dijkstra>,
+) -> web::Json<Response> {
     let total_time = Instant::now();
     // extract points
-    let start: &Node = &request.start;
-    let end: &Node = &request.end;
-    let travel_type = match request.travel_type.as_ref() {
-        "car" => 0,
-        "bicycle" => 1,
-        "foot" => 2,
-        _ => 0,
-    };
-    let by_distance: bool = request.by_distance;
+    let start: Node = request.start;
+    let end: Node = request.end;
     // println!("Start: {},{}", start.latitude, start.longitude);
     // println!("End: {},{}", end.latitude, end.longitude);
-    // println!("travel_type: {}, by_distance: {}", travel_type, by_distance);
 
     // search for clicked points
-    let timing_find = Instant::now();
-    let start_id: usize = dijkstra.get_point_id(start.latitude, start.longitude, travel_type);
-    let end_id: usize = dijkstra.get_point_id(end.latitude, end.longitude, travel_type);
-    println!(
-        "### duration for get_point_id(): {:?}",
-        timing_find.elapsed()
-    );
+    let grid_time = Instant::now();
+    let start_id: NodeId = grid::get_closest_point(start, &data.nodes, &data.grid_bounds);
+    let end_id: NodeId = grid::get_closest_point(end, &data.nodes, &data.grid_bounds);
+    println!("Getting node IDs in: {:?}", grid_time.elapsed());
 
-    let timing = Instant::now();
-    let tmp = dijkstra.find_path(start_id, end_id, travel_type, by_distance);
-    println!("### duration for find_path(): {:?}", timing.elapsed());
+    let dijkstra_time = Instant::now();
+    // let tmp = dijkstra.find_path(start_id, end_id);
+    let cost: f32 = 1.2;
+    let tmp = Some((vec![400, 300, 200, 100, 500, 600], cost));
+    println!("Getting path in: {:?}", dijkstra_time.elapsed());
 
-    let result: Vec<Node>;
+    let result: Vec<(f32, f32)>;
     let mut cost: String = "".to_string();
     match tmp {
         Some((path, path_cost)) => {
-            result = dijkstra.get_coordinates(path);
-            match by_distance {
-                false => {
+            let nodes = grid::get_coordinates(path, &data.nodes);
+            result = nodes.par_iter().map(|node| (node.longitude, node.latitude)).collect::<Vec<(f32, f32)>>();
+            match data.optimized_by {
+                OptimizeBy::Time => {
                     if path_cost.trunc() >= 1.0 {
                         cost = path_cost.trunc().to_string();
                         cost.push_str("h ");
@@ -97,7 +63,7 @@ fn query(request: web::Json<Query>, dijkstra: web::Data<Graph>) -> web::Json<Res
                     cost.push_str(&format!("{:.0}", path_cost.fract() * 60.0));
                     cost.push_str("min");
                 }
-                true => {
+                OptimizeBy::Distance => {
                     cost = format!("{:.2}", path_cost);
                     cost.push_str("km");
                 }
@@ -105,40 +71,34 @@ fn query(request: web::Json<Query>, dijkstra: web::Data<Graph>) -> web::Json<Res
         }
         None => {
             println!("no path found");
-            result = Vec::<Node>::new();
+            result = Vec::<(f32, f32)>::new();
             cost = 0.to_string();
         }
     }
 
-    println!("### answered request in: {:?}", total_time.elapsed());
+    println!("Overall: {:?}", total_time.elapsed());
 
     return web::Json(Response {
-        path: result,
-        cost: cost,
+        // escaping the rust-type to normal type string
+        r#type: "LineString".to_string(),
+        coordinates: result,
+        properties: ResponseWeight { weight: cost },
     });
 }
 
-fn main() {
-    // check if arguments are right
-    let args: Vec<_> = std::env::args().collect();
-    if args.len() != 2 {
-        println!("Usage: {} pbf.fmi-file", args[0]);
-        return;
-    }
-
-    // check if file is right
-    let filename = std::env::args_os().nth(1).unwrap();
-    if !Path::new(&filename).exists() {
-        println!("{} not found", filename.into_string().unwrap());
-        std::process::exit(1);
-    }
+#[actix_rt::main]
+async fn main() -> std::io::Result<()> {
+    std::env::set_var("RUST_LOG", "actix_web=debug");
+    env_logger::init();
 
     // read file
-    let mut reader = BufReader::new(File::open(filename).unwrap());
-    let input: Input = deserialize_from(&mut reader).unwrap();
-    let d = Graph::new(input.nodes, input.ways, input.offset, input.grid);
+    let filename = helper::get_filename();
+    let data: FmiFile = helper::read_from_disk(filename);
 
-    let graph = web::Data::new(d);
+    // initialize dijkstra
+    let dijkstra: Dijkstra = Dijkstra::new(data.nodes.len());
+
+    let data_ref = web::Data::new(data);
 
     // check for static-html folder
     if !Path::new("./html").exists() {
@@ -147,17 +107,17 @@ fn main() {
     }
 
     // start webserver
-    println!("webserver started on http://localhost:8080");
+    println!("Starting server at: http://localhost:8080");
     HttpServer::new(move || {
         App::new()
             .wrap(middleware::Logger::default())
             .data(web::JsonConfig::default().limit(1024))
-            .register_data(graph.clone())
+            .data(dijkstra.clone())
+            .app_data(data_ref.clone())
             .service(web::resource("/dijkstra").route(web::post().to(query)))
-            .service(fs::Files::new("/", "./static/").index_file("index.html"))
+            .service(actix_files::Files::new("/", "./html/").index_file("index.html"))
     })
-    .bind("localhost:8080")
-    .unwrap()
+    .bind("localhost:8080")?
     .run()
-    .unwrap();
+    .await
 }
