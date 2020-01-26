@@ -105,11 +105,13 @@ function query() {
     var body = {
         "start": {
             "latitude": startPoint.lat,
-            "longitude": startPoint.lng
+            "longitude": startPoint.lng,
+            "rank": 0
         },
         "end": {
             "latitude": endPoint.lat,
-            "longitude": endPoint.lng
+            "longitude": endPoint.lng,
+            "rank": 0
         }
     };
     var data = JSON.stringify(body);
@@ -118,7 +120,8 @@ function query() {
 }
 
 function printPath(path) {
-    //TODO check if works
+    // console.log(path);
+    //TODO check if overdrawn?
     map.addLayer(L.geoJSON(path));
 }
 
