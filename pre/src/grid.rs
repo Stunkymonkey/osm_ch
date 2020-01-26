@@ -58,7 +58,7 @@ pub fn generate_grid(
     grid_offset: &mut Vec<usize>,
     nodes: &Vec<Node>,
 ) -> GridBounds {
-    grid.resize(nodes.len(), 0);
+    grid.reserve_exact(nodes.len());
 
     let grid_bounds: GridBounds = get_min_max(nodes);
     let mut tmp_grid = vec![vec![0; 0]; LAT_GRID_AMOUNT * LNG_GRID_AMOUNT];
