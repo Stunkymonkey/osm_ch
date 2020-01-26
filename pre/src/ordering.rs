@@ -37,6 +37,48 @@ pub fn get_mixed_neighbours(
     return neighbours;
 }
 
+fn edge_distance(
+    node: NodeId,
+    edges: &Vec<Way>,
+    up_offset: &Vec<EdgeId>,
+    down_offset: &Vec<EdgeId>,
+    down_index: &Vec<EdgeId>,
+    mut dijkstra: &mut dijkstra::Dijkstra,
+) -> usize {
+    let (shortcuts, _used_edges) = contraction::contract_node(
+        node,
+        &edges,
+        &up_offset,
+        &down_offset,
+        &down_index,
+        &mut dijkstra,
+    );
+    return node_degree(node, &up_offset, &down_offset) - shortcuts.len();
+}
+
+pub fn calculate_heuristic(
+    remaining_nodes: Vec<NodeId>,
+    heuristic: &mut Vec<usize>,
+    edges: &Vec<Way>,
+    up_offset: &Vec<EdgeId>,
+    down_offset: &Vec<EdgeId>,
+    down_index: &Vec<EdgeId>,
+    amount_nodes: usize,
+) {
+    // TODO in parallel
+    for node in remaining_nodes {
+        let mut dijkstra = dijkstra::Dijkstra::new(amount_nodes);
+        heuristic[node] = edge_distance(
+            node,
+            &edges,
+            &up_offset,
+            &down_offset,
+            &down_index,
+            &mut dijkstra,
+        );
+    }
+}
+
 pub fn get_local_minima(
     heuristic: &Vec<usize>,
     up_offset: &Vec<EdgeId>,
