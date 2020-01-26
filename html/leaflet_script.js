@@ -121,8 +121,8 @@ function query() {
 
 function printPath(path) {
     // console.log(path);
-    //TODO check if overdrawn?
-    map.addLayer(L.geoJSON(path));
+    last_path = L.geoJSON(path)
+    map.addLayer(last_path);
 }
 
 
