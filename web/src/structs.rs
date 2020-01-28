@@ -2,24 +2,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::constants::*;
 
-#[derive(Debug, Deserialize, Serialize)]
-pub struct Query {
-    pub start: Node,
-    pub end: Node,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct ResponseWeight {
-    pub weight: String,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct Response {
-    pub r#type: String,
-    pub coordinates: Vec<(f32, f32)>,
-    pub properties: ResponseWeight,
-}
-
 #[derive(Deserialize, Serialize, Debug, Clone, Copy, Eq, PartialEq)]
 pub struct Way {
     pub source: NodeId,

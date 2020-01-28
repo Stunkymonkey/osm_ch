@@ -16,12 +16,33 @@ mod visited_list;
 
 use rayon::prelude::*;
 use actix_web::{middleware, web, App, HttpServer};
+use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::time::Instant;
 
 use constants::*;
 use dijkstra::Dijkstra;
 use structs::*;
+
+
+#[derive(Deserialize, Serialize)]
+pub struct Query {
+    pub start: Node,
+    pub end: Node,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct ResponseWeight {
+    pub weight: String,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct Response {
+    // escaping the rust-type command to normal type string
+    pub r#type: String,
+    pub coordinates: Vec<(f32, f32)>,
+    pub properties: ResponseWeight,
+}
 
 async fn query(
     request: web::Json<Query>,
@@ -81,7 +102,7 @@ async fn query(
     println!("Overall: {:?}", total_time.elapsed());
 
     return web::Json(Response {
-        // escaping the rust-type to normal type string
+        // escaping the rust-type command to normal type string
         r#type: "LineString".to_string(),
         coordinates: result,
         properties: ResponseWeight { weight: cost },
