@@ -54,39 +54,64 @@ fn get_adjacent_nodes(
         let mut cell_ids = Vec::<GridId>::new();
         // moving in circle around the target
         for i in -grid_dist..(grid_dist) {
-            // TODO check bounds: not working perfectly
             // first iteration add the middle
             if grid_dist == 1 && i == 0 {
-                cell_ids.push(calculate_grid_id(
-                    (grid_id_lat) as usize,
-                    (grid_id_lng) as usize,
-                ));
+                if grid_id_lat >= 0
+                    && grid_id_lng >= 0
+                    && grid_id_lat < (LAT_GRID_AMOUNT as isize)
+                    && grid_id_lng < (LNG_GRID_AMOUNT as isize)
+                {
+                    cell_ids.push(calculate_grid_id(
+                        (grid_id_lat) as usize,
+                        (grid_id_lng) as usize,
+                    ));
+                }
             }
             // north left to right
-            cell_ids.push(calculate_grid_id(
-                (grid_id_lat + i) as usize,
-                (grid_id_lng + grid_dist) as usize,
-            ));
-
+            if grid_id_lat + i >= 0
+                && grid_id_lng + grid_dist >= 0
+                && grid_id_lat + i < (LAT_GRID_AMOUNT as isize)
+                && grid_id_lng + grid_dist < (LNG_GRID_AMOUNT as isize)
+            {
+                cell_ids.push(calculate_grid_id(
+                    (grid_id_lat + i) as usize,
+                    (grid_id_lng + grid_dist) as usize,
+                ));
+            }
             // east top to bottom
-            cell_ids.push(calculate_grid_id(
-                (grid_id_lat + grid_dist) as usize,
-                (grid_id_lng - i) as usize,
-            ));
+            if grid_id_lat + grid_dist >= 0
+                && grid_id_lng - i >= 0
+                && grid_id_lat + grid_dist < (LAT_GRID_AMOUNT as isize)
+                && grid_id_lng - i < (LNG_GRID_AMOUNT as isize)
+            {
+                cell_ids.push(calculate_grid_id(
+                    (grid_id_lat + grid_dist) as usize,
+                    (grid_id_lng - i) as usize,
+                ));
+            }
             // south top to bottom
-            cell_ids.push(calculate_grid_id(
-                (grid_id_lat - i) as usize,
-                (grid_id_lng - grid_dist) as usize,
-            ));
+            if grid_id_lat - i >= 0
+                && grid_id_lng - grid_dist >= 0
+                && grid_id_lat - i < (LAT_GRID_AMOUNT as isize)
+                && grid_id_lng - grid_dist < (LNG_GRID_AMOUNT as isize)
+            {
+                cell_ids.push(calculate_grid_id(
+                    (grid_id_lat - i) as usize,
+                    (grid_id_lng - grid_dist) as usize,
+                ));
+            }
             // west top to bottom
-            cell_ids.push(calculate_grid_id(
-                (grid_id_lat - grid_dist) as usize,
-                (grid_id_lng + i) as usize,
-            ));
+            if grid_id_lat - grid_dist >= 0
+                && grid_id_lng + i >= 0
+                && grid_id_lat - grid_dist < (LAT_GRID_AMOUNT as isize)
+                && grid_id_lng + i < (LNG_GRID_AMOUNT as isize)
+            {
+                cell_ids.push(calculate_grid_id(
+                    (grid_id_lat - grid_dist) as usize,
+                    (grid_id_lng + i) as usize,
+                ));
+            }
         }
-
-        // remove cell-ids out of bounds
-        cell_ids.retain(|&x| x < LAT_GRID_AMOUNT * LNG_GRID_AMOUNT);
 
         // get all points from cells
         let adjacent_nodes = get_points_from_cells(&cell_ids, &grid, &grid_offset);
