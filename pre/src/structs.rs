@@ -21,7 +21,7 @@ pub enum OptimizeBy {
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub struct FullWay {
+pub struct OsmWay {
     pub source: NodeId,
     pub target: NodeId,
     pub speed: usize,

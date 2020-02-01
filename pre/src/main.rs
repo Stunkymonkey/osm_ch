@@ -33,7 +33,7 @@ fn main() {
     let overall_time = Instant::now();
 
     let mut nodes = Vec::<Node>::new();
-    let mut full_edges = Vec::<FullWay>::new();
+    let mut full_edges = Vec::<OsmWay>::new();
     let mut up_offset = Vec::<EdgeId>::new();
     let mut down_offset = Vec::<EdgeId>::new();
     let mut edges = Vec::<Way>::new();

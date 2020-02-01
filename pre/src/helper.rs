@@ -37,7 +37,7 @@ fn calc_distance(lat_1: f32, long_1: f32, lat_2: f32, long_2: f32) -> f32 {
 }
 
 // calculate edge distances
-pub fn calc_edge_distances(full_edges: &mut Vec<FullWay>, nodes: &Vec<Node>) {
+pub fn calc_edge_distances(full_edges: &mut Vec<OsmWay>, nodes: &Vec<Node>) {
     full_edges.par_iter_mut().for_each(|edge| {
         edge.distance = (calc_distance(
             nodes[edge.source].latitude,
@@ -48,7 +48,7 @@ pub fn calc_edge_distances(full_edges: &mut Vec<FullWay>, nodes: &Vec<Node>) {
     });
 }
 
-pub fn edges_to_weight(edges: &mut Vec<Way>, full_edges: &Vec<FullWay>) {
+pub fn edges_to_weight(edges: &mut Vec<Way>, full_edges: &Vec<OsmWay>) {
     for full_edge in full_edges {
         let speed = match TRAVEL_TYPE {
             TravelType::Car => full_edge.speed,

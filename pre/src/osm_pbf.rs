@@ -16,7 +16,7 @@ pub fn get_pbf(filename: &String) -> osmpbfreader::OsmPbfReader<std::fs::File> {
 /// store all way-IDs that are having the "highway" tag. with speed-limit
 pub fn read_edges(
     pbf: &mut osmpbfreader::OsmPbfReader<std::fs::File>,
-    full_edges: &mut Vec<FullWay>,
+    full_edges: &mut Vec<OsmWay>,
     osm_id_mapping: &mut HashMap<i64, usize>,
 ) {
     let mut amount_nodes = 0;
@@ -63,7 +63,7 @@ pub fn read_edges(
                             id = amount_nodes;
                             amount_nodes += 1;
                         }
-                        full_edges.push(FullWay {
+                        full_edges.push(OsmWay {
                             source: prev_id,
                             target: id,
                             speed: speed,
