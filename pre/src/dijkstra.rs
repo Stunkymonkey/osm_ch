@@ -163,7 +163,6 @@ impl Dijkstra {
             if weight >= self.max_weight {
                 break;
             }
-            
         }
         return self.resolve_path(end);
     }
@@ -392,7 +391,7 @@ mod tests {
         assert!(result.is_some());
         let path = result.unwrap();
         assert_eq!(path.0.len(), 1);
-        assert_eq!(path.0[0], 4);
+        assert_eq!(path.0, [4]);
         assert_eq!(path.1, 0);
 
         let result = d.find_path(6, 3, &up_offset, &edges);
