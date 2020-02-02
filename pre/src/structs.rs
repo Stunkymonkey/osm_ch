@@ -20,6 +20,7 @@ pub enum OptimizeBy {
     Distance,
 }
 
+// TODO have into-from method for conversion of these types
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub struct OsmWay {
     pub source: NodeId,
@@ -33,7 +34,7 @@ pub struct Way {
     pub source: NodeId,
     pub target: NodeId,
     pub weight: usize,
-    // the result must be EdgeIds, but during execution this will be NodeIds
+    pub id: Option<EdgeId>,
     pub contrated_previous: Option<EdgeId>,
     pub contrated_next: Option<EdgeId>,
 }
@@ -62,8 +63,37 @@ impl Way {
             source: from,
             target: to,
             weight: weight,
+            id: None,
             contrated_previous: None,
             contrated_next: None,
+        }
+    }
+
+    pub fn test(from: NodeId, to: NodeId, weight: Weight, id: NodeId) -> Self {
+        Way {
+            source: from,
+            target: to,
+            weight: weight,
+            id: Some(id),
+            contrated_previous: None,
+            contrated_next: None,
+        }
+    }
+
+    pub fn shortcut(
+        from: NodeId,
+        to: NodeId,
+        weight: Weight,
+        previous: NodeId,
+        next: NodeId,
+    ) -> Self {
+        Way {
+            source: from,
+            target: to,
+            weight: weight,
+            id: None,
+            contrated_previous: Some(previous),
+            contrated_next: Some(next),
         }
     }
 }
