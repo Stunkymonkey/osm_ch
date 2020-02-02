@@ -56,7 +56,7 @@ fn main() {
 
     let weight_time = Instant::now();
     helper::calc_edge_distances(&mut full_edges, &nodes);
-    helper::edges_to_weight(&mut edges, &full_edges);
+    edges = helper::edges_to_weight(&full_edges);
     println!("Getting weights in: {:?}", weight_time.elapsed());
 
     // generate offset arrays

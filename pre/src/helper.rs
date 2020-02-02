@@ -48,23 +48,27 @@ pub fn calc_edge_distances(full_edges: &mut Vec<OsmWay>, nodes: &Vec<Node>) {
     });
 }
 
-pub fn edges_to_weight(edges: &mut Vec<Way>, full_edges: &Vec<OsmWay>) {
-    for full_edge in full_edges {
-        let speed = match TRAVEL_TYPE {
-            TravelType::Car => full_edge.speed,
-            TravelType::CarBicycle => full_edge.speed,
-            TravelType::Bicycle if full_edge.speed <= 20 => full_edge.speed,
-            TravelType::Bicycle => 20,
-            TravelType::BicyclePedestrian if full_edge.speed <= 20 => full_edge.speed,
-            TravelType::BicyclePedestrian => 20,
-            TravelType::Pedestrian => 7,
-            TravelType::All => full_edge.speed,
-            TravelType::Undefined => 1,
-        };
-        let weight = match OPTIMIZE_BY {
-            OptimizeBy::Distance => full_edge.distance,
-            OptimizeBy::Time => full_edge.distance / speed,
-        };
-        edges.push(Way::new(full_edge.source, full_edge.target, weight));
-    }
+/// convert osm-edges to normal ways
+pub fn edges_to_weight(full_edges: &Vec<OsmWay>) -> Vec<Way> {
+    return full_edges
+        .par_iter()
+        .map(|full_edge| {
+            let speed = match TRAVEL_TYPE {
+                TravelType::Car => full_edge.speed,
+                TravelType::CarBicycle => full_edge.speed,
+                TravelType::Bicycle if full_edge.speed <= 20 => full_edge.speed,
+                TravelType::Bicycle => 20,
+                TravelType::BicyclePedestrian if full_edge.speed <= 20 => full_edge.speed,
+                TravelType::BicyclePedestrian => 20,
+                TravelType::Pedestrian => 7,
+                TravelType::All => full_edge.speed,
+                TravelType::Undefined => 1,
+            };
+            let weight = match OPTIMIZE_BY {
+                OptimizeBy::Distance => full_edge.distance,
+                OptimizeBy::Time => full_edge.distance / speed,
+            };
+            return Way::new(full_edge.source, full_edge.target, weight);
+        })
+        .collect();
 }
