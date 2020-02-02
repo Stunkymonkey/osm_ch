@@ -24,7 +24,7 @@ use std::time::Instant;
 use crate::constants::*;
 use crate::structs::*;
 
-// Options: Car, Bicycle, Pedestrian
+// Options: Car, Bicycle, Pedestrian, All
 const TRAVEL_TYPE: TravelType = TravelType::Car;
 // Options: Time, Distance
 const OPTIMIZE_BY: OptimizeBy = OptimizeBy::Distance;
@@ -36,7 +36,7 @@ fn main() {
     let mut full_edges = Vec::<OsmWay>::new();
     let mut up_offset = Vec::<EdgeId>::new();
     let mut down_offset = Vec::<EdgeId>::new();
-    let mut edges = Vec::<Way>::new();
+    let mut edges: Vec<Way>;
     let mut grid_offset = Vec::<GridId>::new();
     let mut grid = Vec::<NodeId>::new();
 

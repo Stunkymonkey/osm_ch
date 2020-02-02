@@ -145,6 +145,7 @@ pub fn is_sub_travel_type(travel_type: TravelType) -> bool {
             }
             _ => return false,
         },
+        TravelType::All => return true,
         _ => panic!("Invalid TravelType is set"),
     }
 }
