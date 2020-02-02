@@ -109,7 +109,7 @@ pub fn run_contraction(
         nodes.len(),
     );
 
-    let local_minima = ordering::get_local_minima(&heuristic);
+    let local_minima = ordering::get_minima(&heuristic);
 
     println!(
         "local_minima at {:?} with {:?}",
