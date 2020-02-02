@@ -22,38 +22,60 @@ fn edge_distance(
         &down_index,
         &mut dijkstra,
     );
-    return node_degree(node, &up_offset, &down_offset) - shortcuts.len();
+    return node_degree(node, &up_offset, &down_offset) as isize - shortcuts.len() as isize;
 }
 
+/// calculate heuristic in parallel
 pub fn calculate_heuristic(
-    remaining_nodes: Vec<NodeId>,
-    heuristic: &mut Vec<usize>,
+    remaining_nodes: &Vec<NodeId>,
     edges: &Vec<Way>,
     up_offset: &Vec<EdgeId>,
     down_offset: &Vec<EdgeId>,
     down_index: &Vec<EdgeId>,
     amount_nodes: usize,
-) {
-    // TODO in parallel
-    for node in remaining_nodes {
-        let mut dijkstra = dijkstra::Dijkstra::new(amount_nodes);
-        heuristic[node] = edge_distance(
-            node,
-            &edges,
-            &up_offset,
-            &down_offset,
-            &down_index,
-            &mut dijkstra,
-        );
-    }
+) -> Vec<isize> {
+    return remaining_nodes
+        .par_iter()
+        .map(|x| {
+            let mut dijkstra = dijkstra::Dijkstra::new(amount_nodes);
+            return edge_distance(
+                *x,
+                &edges,
+                &up_offset,
+                &down_offset,
+                &down_index,
+                &mut dijkstra,
+            );
+        })
+        .collect();
 }
 
-pub fn get_local_minima(
-    heuristic: &Vec<usize>,
+/// get index of local minima in heuristic
+pub fn get_minima(heuristic: &Vec<isize>) -> NodeId {
+    let index_of_min: Option<usize> = heuristic
+        .iter()
+        .enumerate()
+        .min_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
+        .map(|(index, _)| index);
+    return index_of_min.unwrap();
+}
+
+/// get independent set of graph using heuristic
+pub fn get_independent_set(
+    heuristic: &Vec<isize>,
+    edges: &Vec<Way>,
     up_offset: &Vec<EdgeId>,
     down_offset: &Vec<EdgeId>,
     down_index: &Vec<NodeId>,
 ) -> Vec<NodeId> {
+    for (node, heuristic_value) in heuristic.iter().enumerate() {
+        let neighbors =
+            graph_helper::get_all_neighbours(node, &edges, &up_offset, &down_offset, &down_index);
+    }
+
     //TODO
+    //K_NEIGHBORS
+    // mark all neighbors as invalid
+    // partition = let (even, odd): (Vec<i32>, Vec<i32>) = a.par_iter().partition(|&n| n % 2 == 0);
     return vec![0; 12];
 }
