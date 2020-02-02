@@ -6,6 +6,7 @@ extern crate serde;
 mod constants;
 mod contraction;
 mod dijkstra;
+mod graph_helper;
 mod grid;
 mod helper;
 mod min_heap;
@@ -17,8 +18,7 @@ mod structs;
 mod visited_list;
 
 use rayon::prelude::*;
-use std::collections::{HashMap, HashSet};
-use std::iter::FromIterator;
+use std::collections::HashMap;
 use std::time::Instant;
 
 use crate::constants::*;
@@ -65,7 +65,13 @@ fn main() {
 
     // contraction hierarchies
     let contraction_time = Instant::now();
-    contraction::run_contraction(&mut nodes, &mut edges, &mut up_offset, &mut down_offset, &mut down_index);
+    contraction::run_contraction(
+        &mut nodes,
+        &mut edges,
+        &mut up_offset,
+        &mut down_offset,
+        &mut down_index,
+    );
     println!("Contraction in: {:?}", contraction_time.elapsed());
 
     // generate grid
