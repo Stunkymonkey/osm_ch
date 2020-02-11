@@ -20,6 +20,31 @@ pub fn get_down_edge_ids(
     return prev.par_iter().map(|x| down_index[*x]).collect();
 }
 
+/// get all down edge-ids from one node
+pub fn get_edge_ids(
+    node: NodeId,
+    up_offset: &Vec<EdgeId>,
+    down_offset: &Vec<EdgeId>,
+    down_index: &Vec<EdgeId>,
+) -> (Vec<EdgeId>, Vec<EdgeId>) {
+    let outgoing: Vec<NodeId> = get_up_edge_ids(node, &up_offset);
+    let incomming: Vec<NodeId> = get_down_edge_ids(node, &down_offset, &down_index);
+    return (outgoing, incomming);
+}
+
+/// get all edge-ids from one node
+pub fn get_all_edge_ids(
+    node: NodeId,
+    up_offset: &Vec<EdgeId>,
+    down_offset: &Vec<EdgeId>,
+    down_index: &Vec<EdgeId>,
+) -> Vec<EdgeId> {
+    let (outgoing, incomming) = get_edge_ids(node, &up_offset, &down_offset, &down_index);
+    let mut connected_edges = outgoing;
+    connected_edges.extend(&incomming);
+    return connected_edges;
+}
+
 /// get all up neighbors from one node
 pub fn get_up_neighbors(node: NodeId, edges: &Vec<Way>, up_offset: &Vec<EdgeId>) -> Vec<EdgeId> {
     let next = get_up_edge_ids(node, &up_offset);
@@ -100,6 +125,42 @@ mod tests {
         assert_eq!(up, vec![1, 2, 3]);
         let down = get_down_edge_ids(1, &down_offset, &down_index);
         assert_eq!(down, vec![4, 0]);
+    }
+    #[test]
+    fn edge_index_line() {
+        //  0->1->2->3
+
+        let amount_nodes = 4;
+
+        let mut edges = Vec::<Way>::new();
+        edges.push(Way::test(0, 1, 1, 0));
+        edges.push(Way::test(1, 2, 1, 1));
+        edges.push(Way::test(2, 3, 1, 2));
+
+        let mut up_offset = Vec::<EdgeId>::new();
+        let mut down_offset = Vec::<EdgeId>::new();
+        let down_index =
+            offset::generate_offsets(&mut edges, &mut up_offset, &mut down_offset, amount_nodes);
+
+        let up = get_up_edge_ids(0, &up_offset);
+        assert_eq!(up, vec![0]);
+        let down = get_down_edge_ids(0, &down_offset, &down_index);
+        assert_eq!(down, vec![]);
+
+        let up = get_up_edge_ids(1, &up_offset);
+        assert_eq!(up, vec![1]);
+        let down = get_down_edge_ids(1, &down_offset, &down_index);
+        assert_eq!(down, vec![0]);
+
+        let up = get_up_edge_ids(2, &up_offset);
+        assert_eq!(up, vec![2]);
+        let down = get_down_edge_ids(2, &down_offset, &down_index);
+        assert_eq!(down, vec![1]);
+
+        let up = get_up_edge_ids(3, &up_offset);
+        assert_eq!(up, vec![]);
+        let down = get_down_edge_ids(3, &down_offset, &down_index);
+        assert_eq!(down, vec![2]);
     }
 
     #[test]
