@@ -44,7 +44,10 @@ pub fn calc_edge_distances(full_edges: &mut Vec<OsmWay>, nodes: &Vec<Node>) {
             nodes[edge.source].longitude,
             nodes[edge.target].latitude,
             nodes[edge.target].longitude,
-        ) * DIST_MULTIPLICATOR as f32) as usize
+        ) * DIST_MULTIPLICATOR as f32) as usize;
+        if edge.distance == 0 {
+            edge.distance = 1;
+        };
     });
 }
 
