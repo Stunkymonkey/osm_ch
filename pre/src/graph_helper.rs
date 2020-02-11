@@ -48,7 +48,9 @@ pub fn get_all_edge_ids(
 /// get all up neighbors from one node
 pub fn get_up_neighbors(node: NodeId, edges: &Vec<Way>, up_offset: &Vec<EdgeId>) -> Vec<EdgeId> {
     let next = get_up_edge_ids(node, &up_offset);
-    return next.par_iter().map(|x| edges[*x].target).collect();
+    let mut tmp: Vec<EdgeId> = next.par_iter().map(|x| edges[*x].target).collect();
+    tmp.dedup();
+    return tmp;
 }
 
 /// get all up neighbors from one node
@@ -59,7 +61,10 @@ pub fn get_down_neighbors(
     down_index: &Vec<EdgeId>,
 ) -> Vec<EdgeId> {
     let prev = get_down_edge_ids(node, &down_offset, &down_index);
-    return prev.par_iter().map(|x| edges[*x].source).collect();
+    let mut tmp: Vec<EdgeId> = prev.par_iter().map(|x| edges[*x].source).collect();
+    tmp.par_sort_unstable();
+    tmp.dedup();
+    return tmp;
 }
 
 /// returning all previous and next neighbors
@@ -238,9 +243,9 @@ mod tests {
         let (targets, sources) = get_neighbours(1, &edges, &up_offset, &down_offset, &down_index);
 
         assert_eq!(targets, [3, 4, 5]);
-        assert_eq!(sources, [2, 0]);
+        assert_eq!(sources, [0, 2]);
 
         let neighbours = get_all_neighbours(1, &edges, &up_offset, &down_offset, &down_index);
-        assert_eq!(neighbours, [3, 4, 5, 2, 0]);
+        assert_eq!(neighbours, [3, 4, 5, 0, 2]);
     }
 }
