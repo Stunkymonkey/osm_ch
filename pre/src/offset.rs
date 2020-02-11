@@ -18,7 +18,9 @@ pub fn generate_offsets_unstable(
     mut down_offset: &mut Vec<EdgeId>,
     amount_nodes: usize,
 ) -> Vec<EdgeId> {
+    up_offset.clear();
     up_offset.resize(amount_nodes + 1, 0);
+    down_offset.clear();
     down_offset.resize(amount_nodes + 1, 0);
 
     // generate up edges
