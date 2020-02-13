@@ -17,6 +17,7 @@ pub fn get_pbf(filename: &String) -> osmpbfreader::OsmPbfReader<std::fs::File> {
 pub fn read_edges(
     pbf: &mut osmpbfreader::OsmPbfReader<std::fs::File>,
     full_edges: &mut Vec<OsmWay>,
+    // TODO HashMap vs BTreeMap
     osm_id_mapping: &mut HashMap<i64, usize>,
 ) {
     let mut amount_nodes = 0;
@@ -42,6 +43,11 @@ pub fn read_edges(
                         max_speed = way.tags.get("maxspeed").unwrap().trim();
                     }
                     let speed = osm_parsing::parse_speed(max_speed, highway);
+                    let mut one_way: &str = "";
+                    if way.tags.contains_key("oneway") {
+                        one_way = way.tags.get("oneway").unwrap().trim();
+                    }
+                    let (one_way, reverse_dir): (bool, bool) = osm_parsing::parse_one_way(one_way);
                     // get all node IDs from ways without duplication
                     let mut prev_id: usize;
                     let osm_id = way.nodes[0].0;
@@ -63,12 +69,22 @@ pub fn read_edges(
                             id = amount_nodes;
                             amount_nodes += 1;
                         }
-                        full_edges.push(OsmWay {
-                            source: prev_id,
-                            target: id,
-                            speed: speed,
-                            distance: 0,
-                        });
+                        if (!reverse_dir && one_way) || !one_way {
+                            full_edges.push(OsmWay {
+                                source: prev_id,
+                                target: id,
+                                speed: speed,
+                                distance: 0,
+                            });
+                        }
+                        if (reverse_dir && one_way) || !one_way {
+                            full_edges.push(OsmWay {
+                                source: id,
+                                target: prev_id,
+                                speed: speed,
+                                distance: 0,
+                            });
+                        }
                         prev_id = id;
                     }
                 }

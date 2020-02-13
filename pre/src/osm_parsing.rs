@@ -87,3 +87,11 @@ pub fn get_street_type(s: &str, has_sidewalk: bool) -> TravelType {
     }
     return result;
 }
+
+pub fn parse_one_way(s: &str) -> (bool, bool) {
+    return match s {
+        "yes" => (true, false),
+        "-1" => (true, true),
+        _ => (false, false),
+    };
+}
