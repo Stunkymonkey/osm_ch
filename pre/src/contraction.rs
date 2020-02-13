@@ -1,4 +1,6 @@
 use super::*;
+use std::cmp::Reverse;
+// use std::sync::{Arc, Mutex};
 
 /// return new generated shortcuts
 pub fn calc_shortcuts(
@@ -8,10 +10,9 @@ pub fn calc_shortcuts(
     down_offset: &Vec<EdgeId>,
     down_index: &Vec<EdgeId>,
     dijkstra: &mut dijkstra::Dijkstra,
-) -> (Vec<Way>, Vec<EdgeId>) {
-    // dijkstra.avoid_node(node);
+    amount_edges: &mut usize,
+) -> Vec<Way> {
     let mut shortcuts = Vec::<Way>::new();
-    let mut used_edges = Vec::<EdgeId>::new();
     // get node neighbors
     let source_edges: Vec<EdgeId> =
         graph_helper::get_down_edge_ids(node, &down_offset, &down_index);
@@ -22,13 +23,12 @@ pub fn calc_shortcuts(
         for target_edge in &target_edges {
             let target_node = edges[*target_edge].target;
             let weight = edges[source_edge].weight + edges[*target_edge].weight;
-            // simple improvement: dijkstra should get rid of it anyway
+            // skip if start equal end (dijkstra should get rid of it anyway)
             if source_node == target_node {
                 continue;
             }
-            // prevent dijkstra from running on whole graph
-            dijkstra.set_max_weight(weight);
-            let shortest_path = dijkstra.find_path(source_node, target_node, up_offset, edges);
+            let shortest_path =
+                dijkstra.find_path(source_node, target_node, up_offset, edges, false);
             // create new shortcut where found path is shortest
             if shortest_path.is_some() {
                 let shortest_path = shortest_path.unwrap();
@@ -37,18 +37,17 @@ pub fn calc_shortcuts(
                         source: source_node,
                         target: target_node,
                         weight: weight,
-                        // TODO calculate sensfull id
-                        id: None,
-                        contrated_previous: Some(source_edge),
-                        contrated_next: Some(*target_edge),
+                        id: Some(*amount_edges),
+                        // do not use edge.index, because it will change during contraction
+                        contrated_previous: Some(edges[source_edge].id.unwrap()),
+                        contrated_next: Some(edges[*target_edge].id.unwrap()),
                     });
+                    *amount_edges += 1;
                 }
-                used_edges.push(source_edge);
-                used_edges.push(*target_edge);
             }
         }
     }
-    return (shortcuts, used_edges);
+    return shortcuts;
 }
 
 /// return new generated shortcuts
