@@ -1,6 +1,7 @@
 use super::*;
 
 /// get node-ids by brute-force
+#[allow(dead_code)]
 pub fn get_closest_point_stupid(node: Node, nodes: &Vec<Node>) -> usize {
     let mut tmp_minimum = std::f32::MAX;
     let mut tmp_closeset = INVALID_NODE;
@@ -159,6 +160,7 @@ fn calculate_grid_id(lat_index: usize, lng_index: usize) -> GridId {
     return grid_id;
 }
 
+#[allow(dead_code)]
 fn get_grid_id(node: &Node, grid_bounds: &GridBounds) -> GridId {
     let lat_index = get_grid_lat(node, grid_bounds);
     let lng_index = get_grid_lng(node, grid_bounds);
