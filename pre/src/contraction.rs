@@ -51,33 +51,64 @@ pub fn calc_shortcuts(
 }
 
 /// return new generated shortcuts
-pub fn contract_node(
+pub fn contract_single_node(
     node: NodeId,
-    edges: &Vec<Way>,
-    up_offset: &Vec<EdgeId>,
-    down_offset: &Vec<EdgeId>,
-    down_index: &Vec<EdgeId>,
+    mut edges: &mut Vec<Way>,
+    mut up_offset: &mut Vec<EdgeId>,
+    mut down_offset: &mut Vec<EdgeId>,
+    mut down_index: &mut Vec<EdgeId>,
     mut dijkstra: &mut dijkstra::Dijkstra,
+    resulting_edges: &mut Vec<Way>,
+    amount_nodes: usize,
+    mut amount_edges: &mut usize,
 ) {
-    let (shortcuts, used_edges) = calc_shortcuts(
+    let shortcuts = calc_shortcuts(
         node,
-        &edges,
-        &up_offset,
-        &down_offset,
-        &down_index,
+        &mut edges,
+        &mut up_offset,
+        &mut down_offset,
+        &mut down_index,
         &mut dijkstra,
+        &mut amount_edges,
     );
 
-    // TODO handle old edges
+    // get all connected edges of one node
+    let mut connected_edges =
+        graph_helper::get_all_edge_ids(node, &up_offset, &down_offset, &down_index);
 
-    // for edge_id in used_edges.iter().rev() {
-    //     resulting_edges.push(edges[edge_id]);
-    //     edges.remove(edge_id);
-    // }
-    // check what edges are remaining of contracted node in up and down graph
-    // remove them as well?
-    //
-    // TODO remove node/edges and reduce edges from remaining graph
+    // sort reverse for iterating from bottom up
+    connected_edges.sort_by_key(|&edge| Reverse(edge));
+    // all connected nodes are moved to remaining_nodes
+    for edge_id in connected_edges.iter() {
+        resulting_edges.push(edges.remove(*edge_id));
+    }
+    // TODO insert them at correct positions an use generate_offsets_unsafe
+    // add new shortcuts
+    edges.par_extend(&shortcuts);
+    // recalc edge-indices
+    *down_index =
+        offset::generate_offsets(&mut edges, &mut up_offset, &mut down_offset, amount_nodes);
+}
+
+pub fn revert_indices(edges: &mut Vec<Way>) {
+    // TODO fix good indices
+    // TODO parallel?
+    let maximum = edges
+        .par_iter()
+        .map(|edge| edge.id)
+        .max_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
+        .unwrap()
+        .unwrap();
+    let mut indices = vec![0; maximum + 1];
+    for (i, edge) in edges.iter().enumerate() {
+        indices[edge.id.unwrap()] = i;
+    }
+    edges.par_iter_mut().for_each(|edge| {
+        if edge.contrated_previous.is_some() {
+            edge.contrated_previous = Some(indices[edge.contrated_previous.unwrap()]);
+            edge.contrated_next = Some(indices[edge.contrated_next.unwrap()]);
+        }
+    });
 }
 
 /// run full contraction
