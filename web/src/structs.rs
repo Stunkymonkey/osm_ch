@@ -24,7 +24,7 @@ pub enum OptimizeBy {
     Distance,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Clone)]
 pub struct GridBounds {
     pub lat_min: f32,
     pub lat_max: f32,
@@ -32,7 +32,7 @@ pub struct GridBounds {
     pub lng_max: f32,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Clone)]
 pub struct FmiFile {
     pub nodes: Vec<Node>,
     pub up_offset: Vec<EdgeId>,
