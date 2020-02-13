@@ -18,6 +18,7 @@ mod visited_list;
 use rayon::prelude::*;
 use actix_web::{middleware, web, App, HttpServer};
 use serde::{Deserialize, Serialize};
+use std::cell::RefCell;
 use std::path::Path;
 use std::time::Instant;
 
@@ -48,7 +49,7 @@ pub struct Response {
 async fn query(
     request: web::Json<Query>,
     data: web::Data<FmiFile>,
-    dijkstra: web::Data<Dijkstra>,
+    dijkstra_cell: web::Data<RefCell<Dijkstra>>,
 ) -> web::Json<Response> {
     let total_time = Instant::now();
     // extract points
@@ -63,7 +64,7 @@ async fn query(
     let end_id: NodeId = grid::get_closest_point(end, &data.nodes, &data.grid, &data.grid_offset, &data.grid_bounds);
     println!("Getting node IDs in: {:?}", grid_time.elapsed());
 
-    let mut dijkstra: Dijkstra = Dijkstra::new(data.nodes.len());
+    let mut dijkstra = dijkstra_cell.borrow_mut();
 
     let dijkstra_time = Instant::now();
     let tmp = dijkstra.find_path(start_id, end_id, &data.nodes, &data.edges, &data.up_offset, &data.down_offset, &data.down_index);
@@ -129,7 +130,7 @@ async fn main() -> std::io::Result<()> {
     println!("Starting server at: http://localhost:8080");
     HttpServer::new(move || {
         // initialize thread-local dijkstra
-        let mut dijkstra = Dijkstra::new(amount_nodes);
+        let dijkstra = RefCell::new(Dijkstra::new(amount_nodes));
         App::new()
             .wrap(middleware::Logger::default())
             .data(web::JsonConfig::default().limit(1024))
