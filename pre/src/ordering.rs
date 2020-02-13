@@ -6,7 +6,7 @@ pub fn node_degree(node: NodeId, up_offset: &Vec<EdgeId>, down_offset: &Vec<Edge
 }
 
 /// calculating the edge-distance heuristic of single node
-fn edge_distance(
+fn edge_difference(
     node: NodeId,
     edges: &Vec<Way>,
     up_offset: &Vec<EdgeId>,
@@ -14,15 +14,17 @@ fn edge_distance(
     down_index: &Vec<EdgeId>,
     mut dijkstra: &mut dijkstra::Dijkstra,
 ) -> isize {
-    let (shortcuts, _used_edges) = contraction::calc_shortcuts(
+    let shortcuts = contraction::calc_shortcuts(
         node,
         &edges,
         &up_offset,
         &down_offset,
         &down_index,
         &mut dijkstra,
+        &mut edges.len(),
     );
-    return node_degree(node, &up_offset, &down_offset) as isize - shortcuts.len() as isize;
+    // TODO save shortcuts
+    return shortcuts.len() as isize - node_degree(node, &up_offset, &down_offset) as isize;
 }
 
 /// calculate heuristic in parallel
