@@ -28,28 +28,47 @@ fn edge_difference(
 }
 
 /// calculate heuristic in parallel
-pub fn calculate_heuristic(
-    remaining_nodes: &Vec<NodeId>,
+pub fn calculate_heuristics(
+    remaining_nodes: &BTreeSet<NodeId>,
+    dijkstra: &dijkstra::Dijkstra,
+    deleted_neighbors: &Vec<Weight>,
     edges: &Vec<Way>,
     up_offset: &Vec<EdgeId>,
     down_offset: &Vec<EdgeId>,
     down_index: &Vec<EdgeId>,
-    amount_nodes: usize,
 ) -> Vec<isize> {
     return remaining_nodes
         .par_iter()
-        .map(|x| {
-            let mut dijkstra = dijkstra::Dijkstra::new(amount_nodes);
-            return edge_distance(
-                *x,
+        .map_with(dijkstra.clone(), |mut d, x| {
+            deleted_neighbors[*x] as isize
+                + edge_difference(*x, &edges, &up_offset, &down_offset, &down_index, &mut d)
+        })
+        .collect();
+}
+
+/// update all direct neighbors
+pub fn update_neighbor_heuristics(
+    neighbors: Vec<NodeId>,
+    heuristics: &mut Vec<isize>,
+    mut dijkstra: &mut dijkstra::Dijkstra,
+    deleted_neighbors: &Vec<Weight>,
+    edges: &Vec<Way>,
+    up_offset: &Vec<EdgeId>,
+    down_offset: &Vec<EdgeId>,
+    down_index: &Vec<EdgeId>,
+) {
+    // TODO split vec in thread friendly amount and let run
+    for neighbor in neighbors {
+        heuristics[neighbor] = deleted_neighbors[neighbor] as isize
+            + edge_difference(
+                neighbor,
                 &edges,
                 &up_offset,
                 &down_offset,
                 &down_index,
                 &mut dijkstra,
             );
-        })
-        .collect();
+    }
 }
 
 /// get index of local minima in heuristic
