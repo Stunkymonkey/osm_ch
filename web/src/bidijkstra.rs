@@ -26,6 +26,7 @@ impl Dijkstra {
         }
     }
 
+    /// find path from start to end
     pub fn find_path(
         &mut self,
         start: NodeId,
@@ -59,6 +60,7 @@ impl Dijkstra {
         // now loop over both-heaps
         while !self.heap_up.is_empty() || !self.heap_down.is_empty() {
             while let Some(MinHeapItem { node, weight }) = self.heap_up.pop() {
+                // check if not already visited with cheaper costs
                 if self.visited_up.is_visited(node) && weight > self.dist_up[node].0 {
                     continue;
                 }
@@ -94,6 +96,7 @@ impl Dijkstra {
                 break;
             }
             while let Some(MinHeapItem { node, weight }) = self.heap_down.pop() {
+                // check if not already visited with cheaper costs
                 if self.visited_down.is_visited(node) && weight > self.dist_down[node].0 {
                     continue;
                 }
@@ -144,8 +147,9 @@ impl Dijkstra {
     /// backtrack the shortcuts to original edges
     fn resolve_path(
         &self,
-        start: NodeId,
-        end: NodeId,
+        // TODO remove start end?
+        _start: NodeId,
+        _end: NodeId,
         meeting_node: NodeId,
         weight: Weight,
         meeting_rank: Rank,
@@ -153,26 +157,68 @@ impl Dijkstra {
     ) -> Option<(Vec<NodeId>, f32)> {
         assert!(self.visited_up.is_visited(meeting_node));
         assert!(self.visited_down.is_visited(meeting_node));
-        println!("meeting_node {:?}", edges[meeting_node]);
 
         let mut path: Vec<NodeId> = Vec::with_capacity(meeting_rank.pow(2));
 
-        // TODO
-        path.push(start);
+        let up_edge = self.dist_up[meeting_node];
+        let down_edge = self.dist_down[meeting_node];
+
+        println!("meeting_node {:?}", meeting_node);
+
+        self.walk_down(up_edge.1.unwrap(), true, &mut path, &edges);
+        // path.push(start);
+        path.reverse();
         path.push(meeting_node);
-        path.push(end);
-        // let mut current_dist = dist[end];
+        self.walk_down(down_edge.1.unwrap(), false, &mut path, &edges);
         // path.push(end);
-        // while let Some(prev) = current_dist.1 {
-        //     path.push(prev);
-        //     current_dist = dist[prev];
-        // }
-        // path.reverse();
-        // while let Some(prev) = current_dist.1 {
-        //     path.push(prev);
-        //     current_dist = dist[prev];
-        // }
+
+        // TODO check it & get rid of it
+        path.dedup();
 
         return Some((path, weight as f32 / DIST_MULTIPLICATOR as f32));
+    }
+
+    // walk shortcuts from meeting point to end
+    fn walk_down(
+        &self,
+        edge: EdgeId,
+        is_upwards: bool,
+        mut path: &mut Vec<NodeId>,
+        edges: &Vec<Way>,
+    ) {
+        let current_edge = edges[edge];
+        let next;
+        let prev;
+
+        if is_upwards {
+            next = current_edge.source;
+            prev = self.dist_up[next];
+        } else {
+            next = current_edge.target;
+            prev = self.dist_down[next];
+        }
+        path.push(next);
+        if let Some(child) = prev.1 {
+            // self.resolve_edge(child, &mut path, &edges);
+            self.walk_down(child, is_upwards, &mut path, &edges);
+        }
+    }
+
+    /// resolve shortcuts to original edges
+    fn resolve_edge(&self, edge: EdgeId, mut path: &mut Vec<NodeId>, edges: &Vec<Way>) {
+        let current_edge = edges[edge];
+
+        if let Some(previous) = current_edge.contrated_previous {
+            println!("current_edge {:?}; previous {:?}", current_edge, previous);
+            self.resolve_edge(previous, &mut path, &edges);
+        } else {
+            path.push(current_edge.source);
+        }
+        if let Some(next) = current_edge.contrated_next {
+            println!("current_edge {:?}; next {:?}", current_edge, next);
+            self.resolve_edge(next, &mut path, &edges);
+        } else {
+            path.push(current_edge.target);
+        }
     }
 }
