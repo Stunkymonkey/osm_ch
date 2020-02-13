@@ -7,7 +7,8 @@ extern crate rayon;
 extern crate serde_json;
 
 mod constants;
-mod dijkstra;
+mod bidijkstra;
+mod graph_helper;
 mod grid;
 mod helper;
 mod min_heap;
@@ -21,7 +22,7 @@ use std::path::Path;
 use std::time::Instant;
 
 use constants::*;
-use dijkstra::Dijkstra;
+use bidijkstra::Dijkstra;
 use structs::*;
 
 
@@ -62,13 +63,10 @@ async fn query(
     let end_id: NodeId = grid::get_closest_point(end, &data.nodes, &data.grid, &data.grid_offset, &data.grid_bounds);
     println!("Getting node IDs in: {:?}", grid_time.elapsed());
 
+    let mut dijkstra: Dijkstra = Dijkstra::new(data.nodes.len());
+
     let dijkstra_time = Instant::now();
-    // let tmp = dijkstra.find_path(start_id, end_id);
-    let tmp_start = grid::get_closest_point_stupid(start, &data.nodes);
-    let tmp_end = grid::get_closest_point_stupid(end, &data.nodes);
-    let cost: f32 = 1.2;
-    let tmp = Some((vec![start_id, tmp_start, end_id, tmp_end], cost));
-    println!("equal start {:?} end {:?}", start_id == tmp_start, end_id == tmp_end);
+    let tmp = dijkstra.find_path(start_id, end_id, &data.nodes, &data.edges, &data.up_offset, &data.down_offset, &data.down_index);
     println!("Getting path in: {:?}", dijkstra_time.elapsed());
 
     let result: Vec<(f32, f32)>;
@@ -81,21 +79,21 @@ async fn query(
                 OptimizeBy::Time => {
                     if path_cost.trunc() >= 1.0 {
                         cost = path_cost.trunc().to_string();
-                        cost.push_str("h ");
+                        cost.push_str(" h ");
                     }
                     cost.push_str(&format!("{:.0}", path_cost.fract() * 60.0));
-                    cost.push_str("min");
+                    cost.push_str(" min");
                 }
                 OptimizeBy::Distance => {
                     cost = format!("{:.2}", path_cost);
-                    cost.push_str("km");
+                    cost.push_str(" km");
                 }
             };
         }
         None => {
             println!("no path found");
             result = Vec::<(f32, f32)>::new();
-            cost = 0.to_string();
+            cost = "no path found".to_string();
         }
     }
 
@@ -118,9 +116,7 @@ async fn main() -> std::io::Result<()> {
     let filename = helper::get_filename();
     let data: FmiFile = helper::read_from_disk(filename);
 
-    // initialize dijkstra
-    let dijkstra: Dijkstra = Dijkstra::new(data.nodes.len());
-
+    let amount_nodes = data.nodes.len();
     let data_ref = web::Data::new(data);
 
     // check for static-html folder
@@ -132,11 +128,13 @@ async fn main() -> std::io::Result<()> {
     // start webserver
     println!("Starting server at: http://localhost:8080");
     HttpServer::new(move || {
+        // initialize thread-local dijkstra
+        let mut dijkstra = Dijkstra::new(amount_nodes);
         App::new()
             .wrap(middleware::Logger::default())
             .data(web::JsonConfig::default().limit(1024))
-            .data(dijkstra.clone())
             .app_data(data_ref.clone())
+            .data(dijkstra)
             .service(web::resource("/dijkstra").route(web::post().to(query)))
             .service(actix_files::Files::new("/", "./html/").index_file("index.html"))
     })
