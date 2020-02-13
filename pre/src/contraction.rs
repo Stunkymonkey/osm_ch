@@ -228,7 +228,7 @@ pub fn run_parallel_contraction(
         remaining_nodes.insert(node_id);
     }
 
-    let mut dijkstra: dijkstra::Dijkstra = dijkstra::Dijkstra::new(amount_nodes);
+    let mut dijkstra = dijkstra::Dijkstra::new(amount_nodes);
 
     // update priorities of all nodes with simulated contractions
     let mut deleted_neighbors = vec![0; amount_nodes];
@@ -244,9 +244,9 @@ pub fn run_parallel_contraction(
 
     let mut minimas_bool = VisitedList::new(amount_nodes);
     let mut rank: Rank = 0;
-    println!("now contracting...");
 
     while !remaining_nodes.is_empty() {
+        let get_independent_set_time = Instant::now();
         // I ← independent node set
         let minimas = ordering::get_independent_set(
             &remaining_nodes,
@@ -257,6 +257,12 @@ pub fn run_parallel_contraction(
             &down_offset,
             &down_index,
         );
+        println!(
+            "get_independent_set time in: {:?}",
+            get_independent_set_time.elapsed()
+        );
+
+        let shortcuts_time = Instant::now();
         // E ← necessary shortcuts
         let mut shortcuts = Vec::new();
         let mut connected_edges = Vec::new();
@@ -280,7 +286,9 @@ pub fn run_parallel_contraction(
                 &down_index,
             ));
         }
+        println!("shortcuts time in: {:?}", shortcuts_time.elapsed());
 
+        let update_heuristic_time = Instant::now();
         // update heuristic of neighbors of I with simulated contractions
         // TODO check if collecting neighbors, sort & dedup is faster?
         for node in &minimas {
@@ -305,18 +313,23 @@ pub fn run_parallel_contraction(
                 &down_index,
             );
         }
+        println!(
+            "update_heuristic time in: {:?}",
+            update_heuristic_time.elapsed()
+        );
 
+        let other_time = Instant::now();
         // sort in reverse order for removing from bottom up
         connected_edges.sort_by_key(|&edge| Reverse(edge));
         // insert E into remaining graph
         for edge_id in connected_edges.iter() {
-            resulting_edges.push(edges.remove(*edge_id));
+            resulting_edges.push(edges.swap_remove(*edge_id));
         }
 
-        // TODO maybe insert them at correct positions and use generate_offsets_unsafe
         // TODO check shortcuts ids, should be recreated maybe
         // add new shortcuts to edges
         edges.par_extend(&shortcuts);
+
         // recalc edge-indices
         *down_index =
             offset::generate_offsets(&mut edges, &mut up_offset, &mut down_offset, amount_nodes);
@@ -327,6 +340,7 @@ pub fn run_parallel_contraction(
             remaining_nodes.remove(&node);
         }
         rank += 1;
+        println!("rest time in: {:?}", other_time.elapsed());
 
         println!(
             "remaining_nodes {:?} \tindependent_set.len {:?} \tedges.len {:?} \tremoving_edges.len {:?} \tresulting_edges.len {:?}",
@@ -341,12 +355,17 @@ pub fn run_parallel_contraction(
 
     // remove edges, where source and target are identical
 
-    // revert the ids back to usual ids
-    revert_indices(&mut resulting_edges);
+    // testing uniqueness of ids
+    // let unique_set: BTreeSet<usize> = edges.iter().cloned().map(|e| e.id.unwrap()).collect();
+    // assert_eq!(unique_set.len(), edges.len());
+
     *edges = resulting_edges;
     // and calculate the offsets
     *down_index =
         offset::generate_offsets(&mut edges, &mut up_offset, &mut down_offset, amount_nodes);
+
+    // revert the ids back to usual ids
+    revert_indices(&mut edges);
 }
 
 #[cfg(test)]
@@ -726,10 +745,6 @@ mod tests {
         expected_edges.push(Way::shortcut(7, 9, 2, 14, 16, 15));
         expected_edges.push(Way::test(8, 9, 1, 11));
         expected_edges.push(Way::test(9, 4, 1, 10));
-
-        for (i, edge) in edges.iter().enumerate() {
-            println!("{:?} {:?}", i, edge);
-        }
 
         revert_indices(&mut edges);
 
