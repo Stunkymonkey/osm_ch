@@ -200,29 +200,34 @@ pub fn run_contraction(
 
         let update_heuristic_time = Instant::now();
         // update heuristic of neighbors of I with simulated contractions
-        // TODO check if collecting neighbors, sort & dedup is faster?
-        for node in &minimas {
-            let neighbors = graph_helper::get_all_neighbours(
-                *node,
-                &edges,
-                &up_offset,
-                &down_offset,
-                &down_index,
-            );
-            for neighbor in &neighbors {
-                deleted_neighbors[*neighbor] += 1;
-            }
-            ordering::update_neighbor_heuristics(
-                neighbors,
-                &mut heuristics,
-                &mut dijkstra,
-                &deleted_neighbors,
-                &edges,
-                &up_offset,
-                &down_offset,
-                &down_index,
-            );
+        let mut neighbors: Vec<NodeId> = minimas
+            .par_iter()
+            .map(|node| {
+                return graph_helper::get_all_neighbours(
+                    *node,
+                    &edges,
+                    &up_offset,
+                    &down_offset,
+                    &down_index,
+                );
+            })
+            .flatten()
+            .collect();
+        for neighbor in &neighbors {
+            deleted_neighbors[*neighbor] += 1;
         }
+        neighbors.par_sort_unstable();
+        neighbors.dedup();
+        ordering::update_neighbor_heuristics(
+            neighbors,
+            &mut heuristics,
+            &mut dijkstra,
+            &deleted_neighbors,
+            &edges,
+            &up_offset,
+            &down_offset,
+            &down_index,
+        );
         println!(
             "update_heuristic time in: {:?}",
             update_heuristic_time.elapsed()
