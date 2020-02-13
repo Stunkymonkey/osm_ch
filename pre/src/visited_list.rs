@@ -1,5 +1,6 @@
 use crate::constants::*;
 
+#[derive(Clone)]
 pub struct VisitedList {
     // maybe only use a u16 for less memory consumtion
     nodes: Vec<usize>,
