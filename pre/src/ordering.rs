@@ -72,9 +72,9 @@ pub fn update_neighbor_heuristics(
 }
 
 /// get index of local minima in heuristic
-pub fn get_minima(heuristic: &Vec<isize>) -> NodeId {
+pub fn get_minimum(heuristic: &Vec<isize>) -> NodeId {
     let index_of_min: Option<usize> = heuristic
-        .iter()
+        .par_iter()
         .enumerate()
         .min_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
         .map(|(index, _)| index);
@@ -83,20 +83,109 @@ pub fn get_minima(heuristic: &Vec<isize>) -> NodeId {
 
 /// get independent set of graph using heuristic
 pub fn get_independent_set(
-    heuristic: &Vec<isize>,
+    remaining_nodes: &BTreeSet<NodeId>,
+    heuristics: &Vec<isize>,
+    minimas_bool: &mut VisitedList,
     edges: &Vec<Way>,
     up_offset: &Vec<EdgeId>,
     down_offset: &Vec<EdgeId>,
     down_index: &Vec<NodeId>,
 ) -> Vec<NodeId> {
-    for (node, heuristic_value) in heuristic.iter().enumerate() {
-        let neighbors =
-            graph_helper::get_all_neighbours(node, &edges, &up_offset, &down_offset, &down_index);
+    minimas_bool.unvisit_all();
+    for node in remaining_nodes {
+        for neighbor in
+            graph_helper::get_all_neighbours(*node, &edges, &up_offset, &down_offset, &down_index)
+        {
+            if !minimas_bool.is_visited(neighbor)
+                && neighbor != *node
+                && heuristics[*node] >= heuristics[neighbor]
+            {
+                minimas_bool.set_visited(*node);
+            }
+        }
     }
 
-    //TODO
-    //K_NEIGHBORS
-    // mark all neighbors as invalid
-    // partition = let (even, odd): (Vec<i32>, Vec<i32>) = a.par_iter().partition(|&n| n % 2 == 0);
-    return vec![0; 12];
+    // collect all indices of unvisited nodes
+    let result: Vec<NodeId> = remaining_nodes
+        .par_iter()
+        .filter(|&node| !minimas_bool.is_visited(*node))
+        .map(|node| node.clone())
+        .collect();
+    return result;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn independent_set_test() {
+        // note: in this test no edge gets removed
+        // 0->1->2->3->4->5->6->7->8
+        let amount_nodes = 9;
+
+        let mut remaining_nodes = BTreeSet::new();
+        for node_id in 0..amount_nodes {
+            remaining_nodes.insert(node_id);
+        }
+
+        let mut edges = Vec::<Way>::new();
+        edges.push(Way::new(0, 1, 1));
+        edges.push(Way::new(1, 2, 1));
+        edges.push(Way::new(2, 3, 1));
+        edges.push(Way::new(3, 4, 1));
+        edges.push(Way::new(4, 5, 1));
+        edges.push(Way::new(5, 6, 1));
+        edges.push(Way::new(6, 7, 1));
+        edges.push(Way::new(7, 8, 1));
+
+        let mut up_offset = Vec::<EdgeId>::new();
+        let mut down_offset = Vec::<EdgeId>::new();
+        let down_index =
+            offset::generate_offsets(&mut edges, &mut up_offset, &mut down_offset, amount_nodes);
+
+        let heuristics = vec![0, 1, -2, 1, 4, 3, 1, -1, 5];
+
+        let mut minimas_bool = VisitedList::new(amount_nodes);
+
+        let minima = get_independent_set(
+            &remaining_nodes,
+            &heuristics,
+            &mut minimas_bool,
+            &edges,
+            &up_offset,
+            &down_offset,
+            &down_index,
+        );
+
+        let mut expected_minima = Vec::<NodeId>::new();
+        expected_minima.push(0);
+        expected_minima.push(2);
+        expected_minima.push(7);
+
+        assert_eq!(minima, expected_minima);
+
+        remaining_nodes.remove(&0);
+        remaining_nodes.remove(&2);
+        remaining_nodes.remove(&7);
+
+        let heuristics = vec![99, 1, 99, 1, 4, 3, 1, 99, 5];
+        let minima = get_independent_set(
+            &remaining_nodes,
+            &heuristics,
+            &mut minimas_bool,
+            &edges,
+            &up_offset,
+            &down_offset,
+            &down_index,
+        );
+
+        let mut expected_minima = Vec::<NodeId>::new();
+        expected_minima.push(1);
+        expected_minima.push(3);
+        expected_minima.push(6);
+        expected_minima.push(8);
+
+        assert_eq!(minima, expected_minima);
+    }
 }
