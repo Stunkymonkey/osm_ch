@@ -18,16 +18,17 @@ mod structs;
 mod visited_list;
 
 use rayon::prelude::*;
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 use std::time::Instant;
 
 use crate::constants::*;
 use crate::structs::*;
+use crate::visited_list::*;
 
 // Options: Car, Bicycle, Pedestrian, All
-const TRAVEL_TYPE: TravelType = TravelType::Car;
+const TRAVEL_TYPE: TravelType = TravelType::All;
 // Options: Time, Distance
-const OPTIMIZE_BY: OptimizeBy = OptimizeBy::Distance;
+const OPTIMIZE_BY: OptimizeBy = OptimizeBy::Time;
 
 fn main() {
     let overall_time = Instant::now();
@@ -63,9 +64,12 @@ fn main() {
     let mut down_index =
         offset::generate_offsets(&mut edges, &mut up_offset, &mut down_offset, amount_nodes);
 
+    println!("original #nodes: {:?}", nodes.len());
+    println!("original #edges: {:?}", edges.len());
+
     // contraction hierarchies
     let contraction_time = Instant::now();
-    contraction::run_contraction(
+    contraction::run_parallel_contraction(
         &mut nodes,
         &mut edges,
         &mut up_offset,
@@ -79,8 +83,8 @@ fn main() {
     let grid_bounds = grid::generate_grid(&mut grid, &mut grid_offset, &nodes);
     println!("Generate grid in: {:?}", grid_time.elapsed());
 
-    println!("#nodes: {:?}", nodes.len());
-    println!("#edges: {:?}", edges.len());
+    println!("new #nodes: {:?}", nodes.len());
+    println!("new #edges: {:?}", edges.len());
 
     // combine everything
     let result = FmiFile {
