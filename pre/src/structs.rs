@@ -16,7 +16,9 @@ pub enum TravelType {
 
 #[derive(Debug, PartialEq, Serialize)]
 pub enum OptimizeBy {
+    #[allow(dead_code)]
     Time,
+    #[allow(dead_code)]
     Distance,
 }
 
@@ -70,6 +72,7 @@ impl Way {
         }
     }
 
+    #[allow(dead_code)]
     pub fn test(from: NodeId, to: NodeId, weight: Weight, id: NodeId) -> Self {
         Way {
             source: from,
@@ -80,7 +83,7 @@ impl Way {
             contrated_next: None,
         }
     }
-
+    #[allow(dead_code)]
     pub fn shortcut(
         from: NodeId,
         to: NodeId,
@@ -107,7 +110,7 @@ pub struct Node {
     pub rank: Rank,
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize)]
 pub struct GridBounds {
     pub lat_min: f32,
     pub lat_max: f32,
@@ -115,7 +118,7 @@ pub struct GridBounds {
     pub lng_max: f32,
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize)]
 pub struct FmiFile {
     pub nodes: Vec<Node>,
     pub up_offset: Vec<EdgeId>,
