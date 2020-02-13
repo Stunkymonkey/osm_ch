@@ -154,9 +154,13 @@ impl Dijkstra {
         let down_edge = self.dist_down[meeting_node];
 
         path.push(meeting_node);
-        self.walk_down(up_edge.1.unwrap(), true, &mut path, &edges);
-        path.reverse();
-        self.walk_down(down_edge.1.unwrap(), false, &mut path, &edges);
+        if up_edge.1.is_some() {
+            self.walk_down(up_edge.1.unwrap(), true, &mut path, &edges);
+            path.reverse();
+        }
+        if down_edge.1.is_some() {
+            self.walk_down(down_edge.1.unwrap(), false, &mut path, &edges);
+        }
 
         return Some((path, weight as f32 / DIST_MULTIPLICATOR as f32));
     }
