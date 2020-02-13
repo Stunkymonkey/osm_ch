@@ -5,12 +5,11 @@ use min_heap::*;
 use std::collections::BinaryHeap;
 use visited_list::*;
 
+#[derive(Clone)]
 pub struct Dijkstra {
     dist: Vec<(NodeId, Option<Weight>)>,
     visited: VisitedList,
     heap: BinaryHeap<MinHeapItem>,
-    avoid_node: NodeId,
-    max_weight: Weight,
     // if start node stays the same no recomputation/invalidation is needed
     start_node: NodeId,
 }
@@ -20,26 +19,13 @@ impl Dijkstra {
     pub fn new(amount_nodes: usize) -> Self {
         let heap = BinaryHeap::new();
         let visited = VisitedList::new(amount_nodes);
-        let dist = vec![(std::usize::MAX, None); amount_nodes];
+        let dist = vec![(WEIGHT_MAX, None); amount_nodes];
         Dijkstra {
             dist: dist,
             visited: visited,
             heap: heap,
-            avoid_node: INVALID_NODE,
-            max_weight: WEIGHT_MAX,
             start_node: INVALID_NODE,
         }
-    }
-
-    /// exclude node from dijkstra-path
-    pub fn avoid_node(&mut self, node: NodeId) {
-        self.avoid_node = node;
-        self.start_node = INVALID_NODE;
-    }
-
-    /// set the maximum weight of dijkstra
-    pub fn set_max_weight(&mut self, weight: Weight) {
-        self.max_weight = weight;
     }
 
     /// return path of edges(!) from source to target not path of nodes!
@@ -85,10 +71,6 @@ impl Dijkstra {
             // iterate over neighbors
             for edge in graph_helper::get_up_edge_ids(node, &offset) {
                 let current_way: Way = edges[edge];
-                // skip the avoiding node
-                if current_way.target == self.avoid_node {
-                    continue;
-                }
                 // calculate new costs
                 let next = MinHeapItem::new(current_way.target, weight + current_way.weight);
                 // add way to heap
@@ -212,90 +194,11 @@ mod tests {
         let mut down_offset = Vec::<EdgeId>::new();
         offset::generate_offsets(&mut edges, &mut up_offset, &mut down_offset, amount_nodes);
         let mut d: Dijkstra = Dijkstra::new(amount_nodes);
-        let result = d.find_path(0, 2, &up_offset, &edges);
+        let result = d.find_path(0, 2, &up_offset, &edges, true);
 
         assert!(result.is_some());
         let path = result.unwrap();
         assert_eq!(path.0, [1, 3, 4, 5]);
-        assert_eq!(path.1, 4);
-    }
-
-    #[test]
-    fn dijkstra_max_weight() {
-        // Start: 1
-        // Goal: 3
-        // max: 16
-        //
-        // 0-9->1-9->2
-        // |         A
-        // 2         |
-        // |         2
-        // V         |
-        // 3-2->4-2->5
-
-        let amount_nodes = 6;
-
-        let mut edges = Vec::<Way>::new();
-        edges.push(Way::new(0, 1, 9));
-        edges.push(Way::new(1, 2, 9));
-        edges.push(Way::new(0, 3, 2));
-        edges.push(Way::new(3, 4, 2));
-        edges.push(Way::new(4, 5, 2));
-        edges.push(Way::new(5, 2, 2));
-
-        let mut up_offset = Vec::<EdgeId>::new();
-        let mut down_offset = Vec::<EdgeId>::new();
-        offset::generate_offsets(&mut edges, &mut up_offset, &mut down_offset, amount_nodes);
-        let mut d: Dijkstra = Dijkstra::new(amount_nodes);
-        d.set_max_weight(7);
-        let result = d.find_path(0, 2, &up_offset, &edges);
-        assert!(result.is_none());
-
-        d.set_max_weight(8);
-        let result = d.find_path(0, 2, &up_offset, &edges);
-
-        assert!(result.is_some());
-        let path = result.unwrap();
-        assert_eq!(path.0, [1, 3, 4, 5]);
-        assert_eq!(path.1, 8);
-    }
-
-    #[test]
-    fn dijkstra_avoid_node() {
-        // Start: 1
-        // Goal: 3
-        // avoid: 1
-        //
-        // 0-1->1-1->2
-        // |    A    A
-        // 1    1    |
-        // |   /|\   1
-        // V /  | \  |
-        // 3-1->4-1->5
-
-        let amount_nodes = 6;
-
-        let mut edges = Vec::<Way>::new();
-        edges.push(Way::new(0, 1, 1));
-        edges.push(Way::new(1, 2, 1));
-        edges.push(Way::new(0, 3, 1));
-        edges.push(Way::new(3, 4, 1));
-        edges.push(Way::new(4, 5, 1));
-        edges.push(Way::new(5, 2, 1));
-        edges.push(Way::new(3, 1, 1));
-        edges.push(Way::new(4, 1, 1));
-        edges.push(Way::new(5, 1, 1));
-
-        let mut up_offset = Vec::<EdgeId>::new();
-        let mut down_offset = Vec::<EdgeId>::new();
-        offset::generate_offsets(&mut edges, &mut up_offset, &mut down_offset, amount_nodes);
-        let mut d: Dijkstra = Dijkstra::new(amount_nodes);
-        d.avoid_node(1);
-        let result = d.find_path(0, 2, &up_offset, &edges);
-
-        assert!(result.is_some());
-        let path = result.unwrap();
-        assert_eq!(path.0, [1, 4, 6, 8]);
         assert_eq!(path.1, 4);
     }
 
