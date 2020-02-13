@@ -81,7 +81,6 @@ pub fn get_street_type(s: &str, has_sidewalk: bool) -> TravelType {
         result = match result {
             TravelType::CarBicycle => TravelType::All,
             TravelType::Bicycle => TravelType::BicyclePedestrian,
-            TravelType::BicyclePedestrian => TravelType::All,
             _ => result,
         }
     }
