@@ -114,73 +114,239 @@ pub fn revert_indices(edges: &mut Vec<Way>) {
 /// run full contraction
 pub fn run_contraction(
     nodes: &mut Vec<Node>,
-    edges: &mut Vec<Way>,
-    up_offset: &mut Vec<EdgeId>,
-    down_offset: &mut Vec<EdgeId>,
-    down_index: &mut Vec<EdgeId>,
+    mut edges: &mut Vec<Way>,
+    mut up_offset: &mut Vec<EdgeId>,
+    mut down_offset: &mut Vec<EdgeId>,
+    mut down_index: &mut Vec<EdgeId>,
 ) {
-    // convert edges have indices
+    let amount_nodes: usize = nodes.len();
+    let mut amount_edges: usize = edges.len();
+    // make edges have indices
     edges
         .par_iter_mut()
         .enumerate()
         .for_each(|(i, x)| x.id = Some(i));
 
+    // let pre_calc_shortcuts = Arc::new(Mutex::new(vec![vec![0; 0]; amount_nodes]));
     let mut resulting_edges = Vec::<Way>::new();
 
-    // ordering
-    let remaining_nodes: Vec<NodeId> = (0..nodes.len()).collect();
+    let mut remaining_nodes = BTreeSet::new();
+    for node_id in 0..amount_nodes {
+        remaining_nodes.insert(node_id);
+    }
 
-    let heuristic = ordering::calculate_heuristic(
+    let mut dijkstra: dijkstra::Dijkstra = dijkstra::Dijkstra::new(amount_nodes);
+
+    let mut deleted_neighbors = vec![0; amount_nodes];
+    let mut heuristics = ordering::calculate_heuristics(
         &remaining_nodes,
+        &dijkstra,
+        &deleted_neighbors,
         &edges,
         &up_offset,
         &down_offset,
         &down_index,
-        nodes.len(),
     );
 
-    let local_minima = ordering::get_minima(&heuristic);
+    println!("now contracting...");
+    let mut rank: Rank = 0;
+    while !remaining_nodes.is_empty() {
+        // if remaining_nodes.len() % 1000 == 0 {}
+        let node_id = ordering::get_minimum(&heuristics);
+        let neighbors = graph_helper::get_all_neighbours(
+            node_id,
+            &edges,
+            &up_offset,
+            &down_offset,
+            &down_index,
+        );
+        println!(
+            "remaining_nodes {:?} heuristic {:?}",
+            remaining_nodes.len(),
+            heuristics[node_id]
+        );
+        contract_single_node(
+            node_id,
+            &mut edges,
+            &mut up_offset,
+            &mut down_offset,
+            &mut down_index,
+            &mut dijkstra,
+            &mut resulting_edges,
+            amount_nodes,
+            &mut amount_edges,
+        );
+        nodes[node_id].rank = rank;
+        rank += 1;
+        remaining_nodes.remove(&node_id);
 
-    println!(
-        "local_minima at {:?} with {:?}",
-        local_minima, heuristic[local_minima]
+        for neighbor in &neighbors {
+            deleted_neighbors[*neighbor] += 1;
+        }
+        ordering::update_neighbor_heuristics(
+            neighbors,
+            &mut heuristics,
+            &mut dijkstra,
+            &deleted_neighbors,
+            &edges,
+            &up_offset,
+            &down_offset,
+            &down_index,
+        );
+    }
+
+    // remove redundant edges?
+    revert_indices(&mut resulting_edges);
+    *edges = resulting_edges;
+}
+
+/// run full contraction
+pub fn run_parallel_contraction(
+    nodes: &mut Vec<Node>,
+    mut edges: &mut Vec<Way>,
+    mut up_offset: &mut Vec<EdgeId>,
+    mut down_offset: &mut Vec<EdgeId>,
+    mut down_index: &mut Vec<EdgeId>,
+) {
+    let amount_nodes: usize = nodes.len();
+    // maybe shared atomic mutex?
+    let mut amount_edges: usize = edges.len();
+
+    // make edges have indices
+    edges
+        .par_iter_mut()
+        .enumerate()
+        .for_each(|(i, x)| x.id = Some(i));
+    // to prevent much reallocations
+    edges.reserve(edges.len());
+
+    // let pre_calc_shortcuts = Arc::new(Mutex::new(vec![Vec::<Way>::new(); amount_nodes]));
+    let mut resulting_edges = Vec::<Way>::with_capacity(edges.len() * 2);
+
+    let mut remaining_nodes = BTreeSet::new();
+    for node_id in 0..amount_nodes {
+        remaining_nodes.insert(node_id);
+    }
+
+    let mut dijkstra: dijkstra::Dijkstra = dijkstra::Dijkstra::new(amount_nodes);
+
+    // update priorities of all nodes with simulated contractions
+    let mut deleted_neighbors = vec![0; amount_nodes];
+    let mut heuristics = ordering::calculate_heuristics(
+        &remaining_nodes,
+        &dijkstra,
+        &deleted_neighbors,
+        &edges,
+        &up_offset,
+        &down_offset,
+        &down_index,
     );
-    let mut dijkstra: dijkstra::Dijkstra = dijkstra::Dijkstra::new(nodes.len());
 
-    // for node in remaining_nodes {
-    //     contract_node(
-    //         node,
-    //         &edges,
-    //         &up_offset,
-    //         &down_offset,
-    //         &down_index,
-    //         &mut dijkstra,
-    //     );
-    // }
+    let mut minimas_bool = VisitedList::new(amount_nodes);
+    let mut rank: Rank = 0;
+    println!("now contracting...");
 
-    // while:
-    // (re)calculate heuristic
-    // get all minimas
-    // calculate independent set via local minimas
-    //      pick local minimum
-    //      mark all neighbors as invalid
-    //      ...
-    // contract all valid nodes
-    // collect shortcuts
-    // rebuild graph with new shortcuts
+    while !remaining_nodes.is_empty() {
+        // I ← independent node set
+        let minimas = ordering::get_independent_set(
+            &remaining_nodes,
+            &heuristics,
+            &mut minimas_bool,
+            &edges,
+            &up_offset,
+            &down_offset,
+            &down_index,
+        );
+        // E ← necessary shortcuts
+        let mut shortcuts = Vec::new();
+        let mut connected_edges = Vec::new();
+        for node in &minimas {
+            // collect all new shortcuts
+            shortcuts.par_extend(calc_shortcuts(
+                *node,
+                &mut edges,
+                &mut up_offset,
+                &mut down_offset,
+                &mut down_index,
+                &mut dijkstra,
+                &mut amount_edges,
+            ));
 
-    /*
-    contraction parallel:
-    Update Priorities of all Nodes with Simulated Contractions
-    while Remaining Graph not Empty do
-        I ← Independent Node Set
-        E ← Necessary Shortcuts
-        Move I to their Level
-        Insert E into Remaining graph
-        Update Priority of Neighbors of I with Simulated Contractions
-    end while
-    */
-    // TODO convert back to usual ways wightout indices
+            // get all connected edges of minimum
+            connected_edges.par_extend(graph_helper::get_all_edge_ids(
+                *node,
+                &up_offset,
+                &down_offset,
+                &down_index,
+            ));
+        }
+
+        // update heuristic of neighbors of I with simulated contractions
+        // TODO check if collecting neighbors, sort & dedup is faster?
+        for node in &minimas {
+            let neighbors = graph_helper::get_all_neighbours(
+                *node,
+                &edges,
+                &up_offset,
+                &down_offset,
+                &down_index,
+            );
+            for neighbor in &neighbors {
+                deleted_neighbors[*neighbor] += 1;
+            }
+            ordering::update_neighbor_heuristics(
+                neighbors,
+                &mut heuristics,
+                &mut dijkstra,
+                &deleted_neighbors,
+                &edges,
+                &up_offset,
+                &down_offset,
+                &down_index,
+            );
+        }
+
+        // sort in reverse order for removing from bottom up
+        connected_edges.sort_by_key(|&edge| Reverse(edge));
+        // insert E into remaining graph
+        for edge_id in connected_edges.iter() {
+            resulting_edges.push(edges.remove(*edge_id));
+        }
+
+        // TODO maybe insert them at correct positions and use generate_offsets_unsafe
+        // TODO check shortcuts ids, should be recreated maybe
+        // add new shortcuts to edges
+        edges.par_extend(&shortcuts);
+        // recalc edge-indices
+        *down_index =
+            offset::generate_offsets(&mut edges, &mut up_offset, &mut down_offset, amount_nodes);
+
+        // move I to their Level
+        for node in &minimas {
+            nodes[*node].rank = rank;
+            remaining_nodes.remove(&node);
+        }
+        rank += 1;
+
+        println!(
+            "remaining_nodes {:?} \tindependent_set.len {:?} \tedges.len {:?} \tremoving_edges.len {:?} \tresulting_edges.len {:?}",
+            remaining_nodes.len(),
+            minimas.len(),
+            edges.len(),
+            connected_edges.len(),
+            resulting_edges.len()
+        );
+    }
+    println!("max_rank: {:?}", rank);
+
+    // remove edges, where source and target are identical
+
+    // revert the ids back to usual ids
+    revert_indices(&mut resulting_edges);
+    *edges = resulting_edges;
+    // and calculate the offsets
+    *down_index =
+        offset::generate_offsets(&mut edges, &mut up_offset, &mut down_offset, amount_nodes);
 }
 
 #[cfg(test)]
