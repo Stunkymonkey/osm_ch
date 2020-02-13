@@ -69,7 +69,7 @@ fn main() {
 
     // contraction hierarchies
     let contraction_time = Instant::now();
-    contraction::run_parallel_contraction(
+    contraction::run_contraction(
         &mut nodes,
         &mut edges,
         &mut up_offset,

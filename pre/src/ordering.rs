@@ -71,16 +71,6 @@ pub fn update_neighbor_heuristics(
     }
 }
 
-/// get index of local minima in heuristic
-pub fn get_minimum(heuristic: &Vec<isize>) -> NodeId {
-    let index_of_min: Option<usize> = heuristic
-        .par_iter()
-        .enumerate()
-        .min_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
-        .map(|(index, _)| index);
-    return index_of_min.unwrap();
-}
-
 /// get independent set of graph using heuristic
 pub fn get_independent_set(
     remaining_nodes: &BTreeSet<NodeId>,

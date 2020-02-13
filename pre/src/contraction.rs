@@ -91,8 +91,6 @@ pub fn contract_single_node(
 }
 
 pub fn revert_indices(edges: &mut Vec<Way>) {
-    // TODO fix good indices
-    // TODO parallel?
     let maximum = edges
         .par_iter()
         .map(|edge| edge.id)
@@ -100,6 +98,7 @@ pub fn revert_indices(edges: &mut Vec<Way>) {
         .unwrap()
         .unwrap();
     let mut indices = vec![0; maximum + 1];
+    // TODO parallel?
     for (i, edge) in edges.iter().enumerate() {
         indices[edge.id.unwrap()] = i;
     }
@@ -113,95 +112,6 @@ pub fn revert_indices(edges: &mut Vec<Way>) {
 
 /// run full contraction
 pub fn run_contraction(
-    nodes: &mut Vec<Node>,
-    mut edges: &mut Vec<Way>,
-    mut up_offset: &mut Vec<EdgeId>,
-    mut down_offset: &mut Vec<EdgeId>,
-    mut down_index: &mut Vec<EdgeId>,
-) {
-    let amount_nodes: usize = nodes.len();
-    let mut amount_edges: usize = edges.len();
-    // make edges have indices
-    edges
-        .par_iter_mut()
-        .enumerate()
-        .for_each(|(i, x)| x.id = Some(i));
-
-    // let pre_calc_shortcuts = Arc::new(Mutex::new(vec![vec![0; 0]; amount_nodes]));
-    let mut resulting_edges = Vec::<Way>::new();
-
-    let mut remaining_nodes = BTreeSet::new();
-    for node_id in 0..amount_nodes {
-        remaining_nodes.insert(node_id);
-    }
-
-    let mut dijkstra: dijkstra::Dijkstra = dijkstra::Dijkstra::new(amount_nodes);
-
-    let mut deleted_neighbors = vec![0; amount_nodes];
-    let mut heuristics = ordering::calculate_heuristics(
-        &remaining_nodes,
-        &dijkstra,
-        &deleted_neighbors,
-        &edges,
-        &up_offset,
-        &down_offset,
-        &down_index,
-    );
-
-    println!("now contracting...");
-    let mut rank: Rank = 0;
-    while !remaining_nodes.is_empty() {
-        // if remaining_nodes.len() % 1000 == 0 {}
-        let node_id = ordering::get_minimum(&heuristics);
-        let neighbors = graph_helper::get_all_neighbours(
-            node_id,
-            &edges,
-            &up_offset,
-            &down_offset,
-            &down_index,
-        );
-        println!(
-            "remaining_nodes {:?} heuristic {:?}",
-            remaining_nodes.len(),
-            heuristics[node_id]
-        );
-        contract_single_node(
-            node_id,
-            &mut edges,
-            &mut up_offset,
-            &mut down_offset,
-            &mut down_index,
-            &mut dijkstra,
-            &mut resulting_edges,
-            amount_nodes,
-            &mut amount_edges,
-        );
-        nodes[node_id].rank = rank;
-        rank += 1;
-        remaining_nodes.remove(&node_id);
-
-        for neighbor in &neighbors {
-            deleted_neighbors[*neighbor] += 1;
-        }
-        ordering::update_neighbor_heuristics(
-            neighbors,
-            &mut heuristics,
-            &mut dijkstra,
-            &deleted_neighbors,
-            &edges,
-            &up_offset,
-            &down_offset,
-            &down_index,
-        );
-    }
-
-    // remove redundant edges?
-    revert_indices(&mut resulting_edges);
-    *edges = resulting_edges;
-}
-
-/// run full contraction
-pub fn run_parallel_contraction(
     nodes: &mut Vec<Node>,
     mut edges: &mut Vec<Way>,
     mut up_offset: &mut Vec<EdgeId>,
