@@ -17,7 +17,6 @@ pub fn get_pbf(filename: &String) -> osmpbfreader::OsmPbfReader<std::fs::File> {
 pub fn read_edges(
     pbf: &mut osmpbfreader::OsmPbfReader<std::fs::File>,
     full_edges: &mut Vec<OsmWay>,
-    // TODO HashMap vs BTreeMap
     osm_id_mapping: &mut HashMap<i64, usize>,
 ) {
     let mut amount_nodes = 0;

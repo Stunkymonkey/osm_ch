@@ -52,7 +52,7 @@ fn aproximate_speed_limit(s: &str) -> usize {
         "residential" => 30,
         "track" | "service" => 10,
         "living_street" => 7,
-        "path" | "walk" | "footway" => 4,
+        "path" | "walk" | "pedestrian" | "footway" => 4,
         _ => 50,
     };
 }
@@ -87,6 +87,8 @@ pub fn get_street_type(s: &str, has_sidewalk: bool) -> TravelType {
     return result;
 }
 
+/// get directions from on_way
+// info from: https://wiki.openstreetmap.org/wiki/Forward_%26_backward,_left_%26_right#Identifying_the_direction_of_a_way
 pub fn parse_one_way(s: &str) -> (bool, bool) {
     return match s {
         "yes" => (true, false),
