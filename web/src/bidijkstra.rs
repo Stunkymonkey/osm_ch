@@ -133,23 +133,13 @@ impl Dijkstra {
         if meeting_node == INVALID_NODE {
             return None;
         } else {
-            return self.resolve_path(
-                start,
-                end,
-                meeting_node,
-                best_weight,
-                nodes[meeting_node].rank,
-                &edges,
-            );
+            return self.resolve_path(meeting_node, best_weight, nodes[meeting_node].rank, &edges);
         }
     }
 
     /// backtrack the shortcuts to original edges
     fn resolve_path(
         &self,
-        // TODO remove start end?
-        _start: NodeId,
-        _end: NodeId,
         meeting_node: NodeId,
         weight: Weight,
         meeting_rank: Rank,
@@ -163,17 +153,10 @@ impl Dijkstra {
         let up_edge = self.dist_up[meeting_node];
         let down_edge = self.dist_down[meeting_node];
 
-        println!("meeting_node {:?}", meeting_node);
-
-        self.walk_down(up_edge.1.unwrap(), true, &mut path, &edges);
-        // path.push(start);
-        path.reverse();
         path.push(meeting_node);
+        self.walk_down(up_edge.1.unwrap(), true, &mut path, &edges);
+        path.reverse();
         self.walk_down(down_edge.1.unwrap(), false, &mut path, &edges);
-        // path.push(end);
-
-        // TODO check it & get rid of it
-        path.dedup();
 
         return Some((path, weight as f32 / DIST_MULTIPLICATOR as f32));
     }
@@ -186,6 +169,8 @@ impl Dijkstra {
         mut path: &mut Vec<NodeId>,
         edges: &Vec<Way>,
     ) {
+        self.resolve_edge(edge, &mut path, is_upwards, &edges);
+
         let current_edge = edges[edge];
         let next;
         let prev;
@@ -197,28 +182,39 @@ impl Dijkstra {
             next = current_edge.target;
             prev = self.dist_down[next];
         }
-        path.push(next);
         if let Some(child) = prev.1 {
-            // self.resolve_edge(child, &mut path, &edges);
             self.walk_down(child, is_upwards, &mut path, &edges);
         }
     }
 
     /// resolve shortcuts to original edges
-    fn resolve_edge(&self, edge: EdgeId, mut path: &mut Vec<NodeId>, edges: &Vec<Way>) {
+    fn resolve_edge(
+        &self,
+        edge: EdgeId,
+        mut path: &mut Vec<NodeId>,
+        is_upwards: bool,
+        edges: &Vec<Way>,
+    ) {
         let current_edge = edges[edge];
 
-        if let Some(previous) = current_edge.contrated_previous {
-            println!("current_edge {:?}; previous {:?}", current_edge, previous);
-            self.resolve_edge(previous, &mut path, &edges);
+        if is_upwards {
+            if let Some(next) = current_edge.contrated_next {
+                self.resolve_edge(next, &mut path, is_upwards, &edges);
+            }
+            if let Some(previous) = current_edge.contrated_previous {
+                self.resolve_edge(previous, &mut path, is_upwards, &edges);
+            } else {
+                path.push(current_edge.source);
+            }
         } else {
-            path.push(current_edge.source);
-        }
-        if let Some(next) = current_edge.contrated_next {
-            println!("current_edge {:?}; next {:?}", current_edge, next);
-            self.resolve_edge(next, &mut path, &edges);
-        } else {
-            path.push(current_edge.target);
+            if let Some(previous) = current_edge.contrated_previous {
+                self.resolve_edge(previous, &mut path, is_upwards, &edges);
+            }
+            if let Some(next) = current_edge.contrated_next {
+                self.resolve_edge(next, &mut path, is_upwards, &edges);
+            } else {
+                path.push(current_edge.target);
+            }
         }
     }
 }
