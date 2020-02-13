@@ -199,25 +199,28 @@ mod tests {
         edges.push(Way::test(2, 3, 3, 2));
         edges.push(Way::test(2, 4, 1, 3));
 
+        let mut amount_edges = edges.len();
+
         let mut up_offset = Vec::<EdgeId>::new();
         let mut down_offset = Vec::<EdgeId>::new();
         let down_index =
             offset::generate_offsets(&mut edges, &mut up_offset, &mut down_offset, amount_nodes);
         let mut dijkstra: dijkstra::Dijkstra = dijkstra::Dijkstra::new(amount_nodes);
-        let (shortcuts, _used_edges) = calc_shortcuts(
+        let shortcuts = calc_shortcuts(
             2,
             &edges,
             &up_offset,
             &down_offset,
             &down_index,
             &mut dijkstra,
+            &mut amount_edges,
         );
 
         let expected_shortcuts = vec![
-            Way::shortcut(1, 3, 5, 1, 2),
-            Way::shortcut(1, 4, 3, 1, 3),
-            Way::shortcut(0, 3, 4, 0, 2),
-            Way::shortcut(0, 4, 2, 0, 3),
+            Way::shortcut(1, 3, 5, 1, 2, 4),
+            Way::shortcut(1, 4, 3, 1, 3, 5),
+            Way::shortcut(0, 3, 4, 0, 2, 6),
+            Way::shortcut(0, 4, 2, 0, 3, 7),
         ];
         assert_eq!(expected_shortcuts, shortcuts);
     }
@@ -234,21 +237,24 @@ mod tests {
         edges.push(Way::test(0, 3, 1, 1));
         edges.push(Way::test(3, 2, 1, 3));
 
+        let mut amount_edges = edges.len();
+
         let mut up_offset = Vec::<EdgeId>::new();
         let mut down_offset = Vec::<EdgeId>::new();
         let down_index =
             offset::generate_offsets(&mut edges, &mut up_offset, &mut down_offset, amount_nodes);
         let mut dijkstra: dijkstra::Dijkstra = dijkstra::Dijkstra::new(amount_nodes);
-        let (shortcuts, _used_edges) = calc_shortcuts(
+        let shortcuts = calc_shortcuts(
             1,
             &edges,
             &up_offset,
             &down_offset,
             &down_index,
             &mut dijkstra,
+            &mut amount_edges,
         );
 
-        let expected_shortcuts = vec![Way::shortcut(0, 2, 2, 0, 2)];
+        let expected_shortcuts = vec![Way::shortcut(0, 2, 2, 0, 2, 4)];
         assert_eq!(expected_shortcuts, shortcuts);
     }
 
@@ -265,22 +271,25 @@ mod tests {
         edges.push(Way::test(1, 2, 1, 2));
         edges.push(Way::test(3, 1, 1, 3));
 
+        let mut amount_edges = edges.len();
+
         let mut up_offset = Vec::<EdgeId>::new();
         let mut down_offset = Vec::<EdgeId>::new();
         let down_index =
             offset::generate_offsets(&mut edges, &mut up_offset, &mut down_offset, amount_nodes);
         let mut dijkstra: dijkstra::Dijkstra = dijkstra::Dijkstra::new(amount_nodes);
-        let (shortcuts, _used_edges) = calc_shortcuts(
+        let shortcuts = calc_shortcuts(
             1,
             &edges,
             &up_offset,
             &down_offset,
             &down_index,
             &mut dijkstra,
+            &mut amount_edges,
         );
 
         // no need for a shortcut 0->1->2, because there is already the shortcut 3->1->2
-        let expected_shortcuts = vec![Way::shortcut(3, 2, 2, 3, 2)];
+        let expected_shortcuts = vec![Way::shortcut(3, 2, 2, 3, 2, 4)];
         assert_eq!(expected_shortcuts, shortcuts);
     }
 
@@ -300,27 +309,264 @@ mod tests {
         edges.push(Way::test(3, 4, 3, 5));
         edges.push(Way::test(4, 2, 1, 6));
 
+        let mut amount_edges = edges.len();
+
         let mut up_offset = Vec::<EdgeId>::new();
         let mut down_offset = Vec::<EdgeId>::new();
         let down_index =
             offset::generate_offsets(&mut edges, &mut up_offset, &mut down_offset, amount_nodes);
         let mut dijkstra: dijkstra::Dijkstra = dijkstra::Dijkstra::new(amount_nodes);
-        let (shortcuts, _used_edges) = calc_shortcuts(
+        let shortcuts = calc_shortcuts(
             1,
             &edges,
             &up_offset,
             &down_offset,
             &down_index,
             &mut dijkstra,
+            &mut amount_edges,
         );
 
         // there should be a shortcut 0->2, but no shortcuts 0->4, 3->2
-        let expected_shortcuts = vec![Way::shortcut(0, 2, 2, 0, 2)];
+        let expected_shortcuts = vec![Way::shortcut(0, 2, 2, 0, 2, 7)];
         assert_eq!(expected_shortcuts, shortcuts);
     }
 
     #[test]
-    fn contract_disconnect() {
-        // TODO check how edges are moved to new graph
+    fn contract_disconnect_small() {
+        // --->4---3
+        // |   |   |
+        // 2   |   |
+        // |   |   |
+        // --->0---1
+
+        let amount_nodes = 6;
+
+        let mut edges = Vec::<Way>::new();
+        edges.push(Way::test(0, 1, 4, 0));
+        edges.push(Way::test(0, 4, 1, 1));
+        edges.push(Way::test(1, 0, 1, 2));
+        edges.push(Way::test(1, 3, 1, 3));
+        edges.push(Way::test(2, 0, 1, 4));
+        edges.push(Way::test(2, 4, 3, 5));
+        edges.push(Way::test(3, 1, 1, 6));
+        edges.push(Way::test(3, 4, 4, 7));
+        edges.push(Way::test(4, 0, 1, 8));
+        edges.push(Way::test(4, 3, 1, 9));
+
+        let mut amount_edges = edges.len();
+
+        let mut up_offset = Vec::<EdgeId>::new();
+        let mut down_offset = Vec::<EdgeId>::new();
+        let mut down_index =
+            offset::generate_offsets(&mut edges, &mut up_offset, &mut down_offset, amount_nodes);
+        let mut dijkstra: dijkstra::Dijkstra = dijkstra::Dijkstra::new(amount_nodes);
+
+        let mut resulting_edges = Vec::<Way>::new();
+        contract_single_node(
+            0,
+            &mut edges,
+            &mut up_offset,
+            &mut down_offset,
+            &mut down_index,
+            &mut dijkstra,
+            &mut resulting_edges,
+            amount_nodes,
+            &mut amount_edges,
+        );
+        let mut expected_edges = Vec::<Way>::new();
+
+        expected_edges.push(Way::test(1, 3, 1, 3));
+        expected_edges.push(Way::shortcut(1, 4, 2, 2, 1, 10));
+        expected_edges.push(Way::test(2, 4, 3, 5));
+        expected_edges.push(Way::shortcut(2, 4, 2, 4, 1, 11));
+        expected_edges.push(Way::test(3, 1, 1, 6));
+        expected_edges.push(Way::test(3, 4, 4, 7));
+        expected_edges.push(Way::test(4, 3, 1, 9));
+
+        let mut expected_resulting_edges = Vec::<Way>::new();
+        expected_resulting_edges.push(Way::test(4, 0, 1, 8));
+        expected_resulting_edges.push(Way::test(2, 0, 1, 4));
+        expected_resulting_edges.push(Way::test(1, 0, 1, 2));
+        expected_resulting_edges.push(Way::test(0, 4, 1, 1));
+        expected_resulting_edges.push(Way::test(0, 1, 4, 0));
+
+        assert_eq!(edges, expected_edges);
+        assert_eq!(resulting_edges, expected_resulting_edges);
+
+        let max_id = edges
+            .par_iter()
+            .map(|node| node.id.unwrap())
+            .max_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
+            .unwrap();
+        assert_eq!(amount_edges, max_id + 1);
+    }
+
+    #[test]
+    fn contract_disconnect_full() {
+        //      7 -> 8 -> 9
+        //      |         |
+        // 0 -> 5 -> 6 -  |
+        // |         |  \ |
+        // 1 -> 2 -> 3 -> 4
+
+        let amount_nodes = 10;
+
+        let mut edges = Vec::<Way>::new();
+        edges.push(Way::test(0, 1, 1, 4));
+        edges.push(Way::test(1, 2, 1, 3));
+        edges.push(Way::test(2, 3, 1, 2));
+        edges.push(Way::test(3, 4, 20, 1));
+        edges.push(Way::test(0, 5, 5, 0));
+        edges.push(Way::test(5, 6, 1, 9));
+        edges.push(Way::test(6, 4, 20, 8));
+        edges.push(Way::test(6, 3, 20, 7));
+        edges.push(Way::test(5, 7, 5, 6));
+        edges.push(Way::test(7, 8, 1, 5));
+        edges.push(Way::test(8, 9, 1, 11));
+        edges.push(Way::test(9, 4, 1, 10));
+
+        let mut amount_edges = edges.len();
+
+        let mut up_offset = Vec::<EdgeId>::new();
+        let mut down_offset = Vec::<EdgeId>::new();
+        let mut down_index =
+            offset::generate_offsets(&mut edges, &mut up_offset, &mut down_offset, amount_nodes);
+        let mut dijkstra: dijkstra::Dijkstra = dijkstra::Dijkstra::new(amount_nodes);
+
+        let mut resulting_edges = Vec::<Way>::new();
+
+        let contraction_order = vec![6, 5, 3, 8];
+        for node in contraction_order {
+            contract_single_node(
+                node,
+                &mut edges,
+                &mut up_offset,
+                &mut down_offset,
+                &mut down_index,
+                &mut dijkstra,
+                &mut resulting_edges,
+                amount_nodes,
+                &mut amount_edges,
+            );
+        }
+        let mut expected_edges = Vec::<Way>::new();
+        expected_edges.push(Way::test(0, 1, 1, 4));
+        expected_edges.push(Way::shortcut(0, 7, 10, 0, 6, 13));
+        expected_edges.push(Way::test(1, 2, 1, 3));
+        expected_edges.push(Way::shortcut(2, 4, 21, 2, 1, 14));
+        expected_edges.push(Way::shortcut(7, 9, 2, 5, 11, 15));
+        expected_edges.push(Way::test(9, 4, 1, 10));
+
+        let mut expected_resulting_edges = Vec::<Way>::new();
+        expected_resulting_edges.push(Way::test(6, 4, 20, 8));
+        expected_resulting_edges.push(Way::test(6, 3, 20, 7));
+        expected_resulting_edges.push(Way::test(5, 6, 1, 9));
+        expected_resulting_edges.push(Way::test(5, 7, 5, 6));
+        expected_resulting_edges.push(Way::shortcut(5, 3, 21, 9, 7, 12));
+        expected_resulting_edges.push(Way::test(0, 5, 5, 0));
+        expected_resulting_edges.push(Way::test(3, 4, 20, 1));
+        expected_resulting_edges.push(Way::test(2, 3, 1, 2));
+        expected_resulting_edges.push(Way::test(8, 9, 1, 11));
+        expected_resulting_edges.push(Way::test(7, 8, 1, 5));
+
+        assert_eq!(edges, expected_edges);
+        assert_eq!(resulting_edges, expected_resulting_edges);
+
+        let new_contraction_order = vec![1, 0, 9, 4, 7, 2];
+        for node in new_contraction_order {
+            contract_single_node(
+                node,
+                &mut edges,
+                &mut up_offset,
+                &mut down_offset,
+                &mut down_index,
+                &mut dijkstra,
+                &mut resulting_edges,
+                amount_nodes,
+                &mut amount_edges,
+            );
+        }
+
+        expected_resulting_edges.push(Way::test(1, 2, 1, 3));
+        expected_resulting_edges.push(Way::test(0, 1, 1, 4));
+        expected_resulting_edges.push(Way::shortcut(0, 7, 10, 0, 6, 13));
+        expected_resulting_edges.push(Way::shortcut(0, 2, 2, 4, 3, 16));
+        expected_resulting_edges.push(Way::test(9, 4, 1, 10));
+        expected_resulting_edges.push(Way::shortcut(7, 9, 2, 5, 11, 15));
+        expected_resulting_edges.push(Way::shortcut(7, 4, 3, 15, 10, 17));
+        expected_resulting_edges.push(Way::shortcut(2, 4, 21, 2, 1, 14));
+
+        assert_eq!(edges, vec![]);
+        assert_eq!(resulting_edges, expected_resulting_edges);
+
+        let max_id = resulting_edges
+            .par_iter()
+            .map(|node| node.id.unwrap())
+            .max_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
+            .unwrap();
+        assert_eq!(amount_edges, max_id + 1);
+    }
+
+    #[test]
+    fn revert_indices_test() {
+        //      7 -> 8 -> 9
+        //      |         |
+        // 0 -> 5 -> 6 -  |
+        // |         |  \ |
+        // 1 -> 2 -> 3 -> 4
+
+        let amount_nodes = 10;
+        let mut edges = Vec::<Way>::new();
+        edges.push(Way::test(6, 4, 20, 8));
+        edges.push(Way::test(6, 3, 20, 7));
+        edges.push(Way::test(5, 6, 1, 9));
+        edges.push(Way::test(5, 7, 5, 6));
+        edges.push(Way::shortcut(5, 3, 21, 9, 7, 12));
+        edges.push(Way::test(0, 5, 5, 0));
+        edges.push(Way::test(3, 4, 20, 1));
+        edges.push(Way::test(2, 3, 1, 2));
+        edges.push(Way::test(8, 9, 1, 11));
+        edges.push(Way::test(7, 8, 1, 5));
+        edges.push(Way::test(1, 2, 1, 3));
+        edges.push(Way::test(0, 1, 1, 4));
+        edges.push(Way::shortcut(0, 7, 10, 0, 6, 13));
+        edges.push(Way::shortcut(0, 2, 2, 4, 3, 16));
+        edges.push(Way::test(9, 4, 1, 10));
+        edges.push(Way::shortcut(7, 9, 2, 5, 11, 15));
+        edges.push(Way::shortcut(7, 4, 3, 15, 10, 17));
+        edges.push(Way::shortcut(2, 4, 21, 2, 1, 14));
+
+        let mut up_offset = Vec::<EdgeId>::new();
+        let mut down_offset = Vec::<EdgeId>::new();
+        let _down_index =
+            offset::generate_offsets(&mut edges, &mut up_offset, &mut down_offset, amount_nodes);
+
+        let mut expected_edges = Vec::<Way>::new();
+        expected_edges.push(Way::test(0, 1, 1, 4));
+        expected_edges.push(Way::shortcut(0, 2, 2, 0, 4, 16));
+        expected_edges.push(Way::test(0, 5, 5, 0));
+        expected_edges.push(Way::shortcut(0, 7, 10, 2, 10, 13));
+        expected_edges.push(Way::test(1, 2, 1, 3));
+        expected_edges.push(Way::test(2, 3, 1, 2));
+        expected_edges.push(Way::shortcut(2, 4, 21, 5, 7, 14));
+        expected_edges.push(Way::test(3, 4, 20, 1));
+        expected_edges.push(Way::shortcut(5, 3, 21, 9, 11, 12));
+        expected_edges.push(Way::test(5, 6, 1, 9));
+        expected_edges.push(Way::test(5, 7, 5, 6));
+        expected_edges.push(Way::test(6, 3, 20, 7));
+        expected_edges.push(Way::test(6, 4, 20, 8));
+        expected_edges.push(Way::shortcut(7, 4, 3, 15, 17, 17));
+        expected_edges.push(Way::test(7, 8, 1, 5));
+        expected_edges.push(Way::shortcut(7, 9, 2, 14, 16, 15));
+        expected_edges.push(Way::test(8, 9, 1, 11));
+        expected_edges.push(Way::test(9, 4, 1, 10));
+
+        for (i, edge) in edges.iter().enumerate() {
+            println!("{:?} {:?}", i, edge);
+        }
+
+        revert_indices(&mut edges);
+
+        assert_eq!(edges, expected_edges);
     }
 }
