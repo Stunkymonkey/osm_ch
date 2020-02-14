@@ -92,7 +92,6 @@ async fn query(
             };
         }
         None => {
-            println!("no path found");
             result = Vec::<(f32, f32)>::new();
             cost = "no path found".to_string();
         }
