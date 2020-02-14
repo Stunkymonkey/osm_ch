@@ -1,10 +1,5 @@
-extern crate actix_files;
-extern crate actix_rt;
-extern crate actix_web;
-extern crate bincode;
-extern crate serde;
-extern crate rayon;
-extern crate serde_json;
+#[macro_use]
+extern crate log;
 
 mod constants;
 mod bidijkstra;
@@ -92,12 +87,13 @@ async fn query(
             };
         }
         None => {
+            warn!("no path found");
             result = Vec::<(f32, f32)>::new();
             cost = "no path found".to_string();
         }
     }
 
-    println!("Overall: {:?}", total_time.elapsed());
+    info!("        Overall: {:?}", total_time.elapsed());
 
     return web::Json(Response {
         // escaping the rust-type command to normal type string
@@ -109,7 +105,7 @@ async fn query(
 
 #[actix_rt::main]
 async fn main() -> std::io::Result<()> {
-    std::env::set_var("RUST_LOG", "actix_web=info");
+    std::env::set_var("RUST_LOG", "debug");
     env_logger::init();
 
     // read file
