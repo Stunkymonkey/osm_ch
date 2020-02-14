@@ -12,6 +12,8 @@ pub struct Dijkstra {
     heap: BinaryHeap<MinHeapItem>,
     // if start node stays the same no recomputation/invalidation is needed
     start_node: NodeId,
+    // to keep track if graph changes while contracting
+    prev_edge_len: usize,
 }
 
 impl Dijkstra {
@@ -25,6 +27,7 @@ impl Dijkstra {
             visited: visited,
             heap: heap,
             start_node: INVALID_NODE,
+            prev_edge_len: WEIGHT_MAX,
         }
     }
 
@@ -40,7 +43,8 @@ impl Dijkstra {
         if start == end {
             return Some((vec![], 0));
         }
-        if start != self.start_node {
+        if start != self.start_node || self.prev_edge_len != edges.len() {
+            self.prev_edge_len = edges.len();
             self.heap.clear();
             self.visited.unvisit_all();
             self.heap.push(MinHeapItem::new(start, 0));
@@ -51,7 +55,6 @@ impl Dijkstra {
         self.dist[start] = (0, None);
         self.visited.set_visited(start);
         self.start_node = start;
-        let mut k = 0;
 
         while let Some(MinHeapItem { node, weight }) = self.heap.pop() {
             // found end
@@ -63,10 +66,6 @@ impl Dijkstra {
             if self.visited.is_visited(node) && weight > self.dist[node].0 {
                 continue;
             }
-            if k >= self.dist.len() * 2 {
-                panic!("walking extremly long dijkstra");
-            }
-            k += 1;
 
             // iterate over neighbors
             for edge in graph_helper::get_up_edge_ids(node, &offset) {
@@ -97,14 +96,9 @@ impl Dijkstra {
         }
         let mut path = Vec::with_capacity(self.dist.len() / 2);
         let mut current_dist = self.dist[end];
-        let mut i = 0;
         while let Some(prev) = current_dist.1 {
             path.push(prev);
             current_dist = self.dist[edges[prev].source];
-            if i >= self.dist.len() {
-                panic!("path resolv was running infinitely");
-            }
-            i += 1;
         }
         path.reverse();
         return Some((path, weight));
@@ -252,6 +246,53 @@ mod tests {
         let path = result.unwrap();
         assert_eq!(path.0, [0, 1]);
         assert_eq!(path.1, 2);
+    }
+
+    #[test]
+    fn dijkstra_change_edges() {
+        //   1
+        //  / \
+        // 0---2
+        let amount_nodes = 3;
+
+        let mut edges = Vec::<Way>::new();
+        edges.push(Way::new(0, 1, 1));
+        edges.push(Way::new(0, 2, 1));
+        edges.push(Way::new(1, 0, 1));
+        edges.push(Way::new(1, 2, 1));
+        edges.push(Way::new(2, 0, 1));
+        edges.push(Way::new(2, 1, 1));
+
+        let mut up_offset = Vec::<EdgeId>::new();
+        let mut down_offset = Vec::<EdgeId>::new();
+        offset::generate_offsets(&mut edges, &mut up_offset, &mut down_offset, amount_nodes);
+        let mut d: Dijkstra = Dijkstra::new(amount_nodes);
+
+        let result = d.find_path(0, 2, &up_offset, &edges, true);
+        assert!(result.is_some());
+        let path = result.unwrap();
+        assert_eq!(path.0, [1]);
+        assert_eq!(path.1, 1);
+
+        let result = d.find_path(1, 2, &up_offset, &edges, true);
+        assert!(result.is_some());
+        let path = result.unwrap();
+        assert_eq!(path.0, [3]);
+        assert_eq!(path.1, 1);
+
+        edges.remove(0);
+
+        let result = d.find_path(0, 2, &up_offset, &edges, true);
+        assert!(result.is_some());
+        let path = result.unwrap();
+        assert_eq!(path.0, [0]);
+        assert_eq!(path.1, 1);
+
+        let result = d.find_path(1, 2, &up_offset, &edges, true);
+        assert!(result.is_some());
+        let path = result.unwrap();
+        assert_eq!(path.0, [2]);
+        assert_eq!(path.1, 1);
     }
 
     #[test]
