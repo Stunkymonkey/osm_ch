@@ -6,6 +6,7 @@ pub type GridId = usize;
 
 pub const INVALID_NODE: NodeId = std::usize::MAX;
 pub const WEIGHT_MAX: Weight = std::usize::MAX;
+pub const INVALID_RANK: NodeId = std::usize::MAX;
 
 pub const DIST_MULTIPLICATOR: usize = 262144; // 2^18
 

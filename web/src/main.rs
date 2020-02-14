@@ -3,6 +3,7 @@ extern crate log;
 
 mod constants;
 mod bidijkstra;
+mod geojson;
 mod graph_helper;
 mod grid;
 mod helper;
@@ -12,7 +13,6 @@ mod visited_list;
 
 use rayon::prelude::*;
 use actix_web::{middleware, web, App, HttpServer};
-use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 use std::path::Path;
 use std::time::Instant;
@@ -20,50 +20,42 @@ use std::time::Instant;
 use constants::*;
 use bidijkstra::Dijkstra;
 use structs::*;
+use geojson::*;
 
-
-#[derive(Deserialize, Serialize)]
-pub struct Query {
-    pub start: Node,
-    pub end: Node,
-}
-
-#[derive(Deserialize, Serialize)]
-pub struct ResponseWeight {
-    pub weight: String,
-}
-
-#[derive(Deserialize, Serialize)]
-pub struct Response {
-    // escaping the rust-type command to normal type string
-    pub r#type: String,
-    pub coordinates: Vec<(f32, f32)>,
-    pub properties: ResponseWeight,
-}
-
-async fn query(
-    request: web::Json<Query>,
+async fn shortest_path(
+    request: web::Json<GeoJsonRequest>,
     data: web::Data<FmiFile>,
     dijkstra_cell: web::Data<RefCell<Dijkstra>>,
-) -> web::Json<Response> {
+) -> web::Json<GeoJsonRespone> {
     let total_time = Instant::now();
+
     // extract points
-    let start: Node = request.start;
-    let end: Node = request.end;
-    // println!("Start: {},{}", start.latitude, start.longitude);
-    // println!("End: {},{}", end.latitude, end.longitude);
+    let features = &request.features;
+    assert_eq!(features.len(), 2);
+
+    let start_feature = &features[0].geometry.coordinates;
+    let end_feature = &features[1].geometry.coordinates;
+    assert_eq!(start_feature.len(), 2);
+    assert_eq!(end_feature.len(), 2);
+
+    let start = Node { longitude : start_feature[0], latitude: start_feature[1], rank: INVALID_RANK};
+    let end = Node { longitude : end_feature[0], latitude: end_feature[1], rank: INVALID_RANK};
+    debug!("Start: {},{}", start.latitude, start.longitude);
+    debug!("End: {},{}", end.latitude, end.longitude);
 
     // search for clicked points
     let grid_time = Instant::now();
     let start_id: NodeId = grid::get_closest_point(start, &data.nodes, &data.grid, &data.grid_offset, &data.grid_bounds);
     let end_id: NodeId = grid::get_closest_point(end, &data.nodes, &data.grid, &data.grid_offset, &data.grid_bounds);
-    println!("Getting node IDs in: {:?}", grid_time.elapsed());
+    debug!("start_id {}", start_id);
+    debug!("end_id {}", end_id);
+    info!(" Get node-ID in: {:?}", grid_time.elapsed());
 
     let mut dijkstra = dijkstra_cell.borrow_mut();
 
     let dijkstra_time = Instant::now();
     let tmp = dijkstra.find_path(start_id, end_id, &data.nodes, &data.edges, &data.up_offset, &data.down_offset, &data.down_index);
-    println!("Getting path in: {:?}", dijkstra_time.elapsed());
+    info!("    Dijkstra in: {:?}", dijkstra_time.elapsed());
 
     let result: Vec<(f32, f32)>;
     let mut cost: String = "".to_string();
@@ -95,11 +87,10 @@ async fn query(
 
     info!("        Overall: {:?}", total_time.elapsed());
 
-    return web::Json(Response {
+    return web::Json(GeoJsonRespone {
         // escaping the rust-type command to normal type string
-        r#type: "LineString".to_string(),
-        coordinates: result,
-        properties: ResponseWeight { weight: cost },
+        r#type: "FeatureCollection".to_string(),
+        features: vec![ FeatureResponse { r#type: "Feature".to_string(), geometry: GeometryResponse{r#type: "LineString".to_string(), coordinates: result}, properties: Some(Property { weight: cost }) }],
     });
 }
 
@@ -131,7 +122,7 @@ async fn main() -> std::io::Result<()> {
             .data(web::JsonConfig::default().limit(1024))
             .app_data(data_ref.clone())
             .data(dijkstra)
-            .service(web::resource("/dijkstra").route(web::post().to(query)))
+            .service(web::resource("/dijkstra").route(web::post().to(shortest_path)))
             .service(actix_files::Files::new("/", "./html/").index_file("index.html"))
     })
     .bind("localhost:8080")?

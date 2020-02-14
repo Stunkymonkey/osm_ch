@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
-curl -d '{"start":{"latitude": 53.5511,"longitude": 9.9937,"rank":0}, "end":{"latitude": 48.7758,"longitude": 9.1829,"rank":0}}' -H "Content-Type: application/json" -X POST http://localhost:8080/dijkstra
+curl -d '{"type":"FeatureCollection","features":[{"type":"Feature","geometry":{"type":"Point","coordinates":[6.767578125000001,49.459198634468564]}},{"type":"Feature","geometry":{"type":"Point","coordinates":[7.182312011718751,49.31438004800689]}}]}' -H "Content-Type: application/json" -X POST http://localhost:8080/dijkstra
 echo ""
