@@ -93,7 +93,7 @@ function query() {
             var json = JSON.parse(xhr.responseText);
             if (json.path != "") {
                 printPath(json);
-                show_result(json.properties.weight);
+                show_result(json.features[0].properties.weight);
             } else {
                 show_no_path_found();
             }
@@ -103,16 +103,29 @@ function query() {
     };
 
     var body = {
-        "start": {
-            "latitude": startPoint.lat,
-            "longitude": startPoint.lng,
-            "rank": 0
-        },
-        "end": {
-            "latitude": endPoint.lat,
-            "longitude": endPoint.lng,
-            "rank": 0
-        }
+        "type": "FeatureCollection",
+        "features": [
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [
+                        startPoint.lng,
+                        startPoint.lat
+                    ]
+                }
+            },
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [
+                        endPoint.lng,
+                        endPoint.lat
+                    ]
+                }
+            }
+        ]
     };
     var data = JSON.stringify(body);
     // console.log("request: " + data);
