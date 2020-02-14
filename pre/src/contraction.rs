@@ -126,8 +126,6 @@ pub fn run_contraction(
         .par_iter_mut()
         .enumerate()
         .for_each(|(i, x)| x.id = Some(i));
-    // to prevent much reallocations
-    edges.reserve(edges.len());
 
     // let pre_calc_shortcuts = Arc::new(Mutex::new(vec![Vec::<Way>::new(); amount_nodes]));
     let mut resulting_edges = Vec::<Way>::with_capacity(edges.len() * 2);
@@ -166,15 +164,18 @@ pub fn run_contraction(
             &down_offset,
             &down_index,
         );
-        println!(
-            "get_independent_set time in: {:?}",
-            get_independent_set_time.elapsed()
-        );
+        if remaining_nodes.len() > 1_000 {
+            println!(
+                "get_independent_set time in: {:?}",
+                get_independent_set_time.elapsed()
+            );
+        }
 
         let shortcuts_time = Instant::now();
         // E ← necessary shortcuts
         let mut shortcuts = Vec::new();
         let mut connected_edges = Vec::new();
+
         for node in &minimas {
             // collect all new shortcuts
             shortcuts.par_extend(calc_shortcuts(
@@ -195,7 +196,10 @@ pub fn run_contraction(
                 &down_index,
             ));
         }
-        println!("shortcuts time in: {:?}", shortcuts_time.elapsed());
+
+        if remaining_nodes.len() > 1_000 {
+            println!("shortcuts time in: {:?}", shortcuts_time.elapsed());
+        }
 
         let update_heuristic_time = Instant::now();
         // update heuristic of neighbors of I with simulated contractions
@@ -227,10 +231,13 @@ pub fn run_contraction(
             &down_offset,
             &down_index,
         );
-        println!(
-            "update_heuristic time in: {:?}",
-            update_heuristic_time.elapsed()
-        );
+
+        if remaining_nodes.len() > 1_000 {
+            println!(
+                "update_heuristic time in: {:?}",
+                update_heuristic_time.elapsed()
+            );
+        }
 
         let other_time = Instant::now();
         // sort in reverse order for removing from bottom up
@@ -254,7 +261,9 @@ pub fn run_contraction(
             remaining_nodes.remove(&node);
         }
         rank += 1;
-        println!("rest time in: {:?}", other_time.elapsed());
+        if remaining_nodes.len() > 1_000 {
+            println!("rest time in: {:?}", other_time.elapsed());
+        }
 
         println!(
             "remaining_nodes {:?} \tindependent_set.len {:?} \tedges.len {:?} \tremoving_edges.len {:?} \tresulting_edges.len {:?}",
@@ -427,6 +436,42 @@ mod tests {
 
         // there should be a shortcut 0->2, but no shortcuts 0->4, 3->2
         let expected_shortcuts = vec![Way::shortcut(0, 2, 2, 0, 2, 7)];
+        assert_eq!(expected_shortcuts, shortcuts);
+    }
+
+    #[test]
+    fn contract_triangle() {
+        //   1
+        //  / \
+        // 0---2
+        let amount_nodes = 3;
+
+        let mut edges = Vec::<Way>::new();
+        edges.push(Way::new(0, 1, 1));
+        edges.push(Way::new(0, 2, 1));
+        edges.push(Way::new(1, 0, 1));
+        edges.push(Way::new(1, 2, 1));
+        edges.push(Way::new(2, 0, 1));
+        edges.push(Way::new(2, 1, 1));
+
+        let mut amount_edges = edges.len();
+
+        let mut up_offset = Vec::<EdgeId>::new();
+        let mut down_offset = Vec::<EdgeId>::new();
+        let down_index =
+            offset::generate_offsets(&mut edges, &mut up_offset, &mut down_offset, amount_nodes);
+        let mut dijkstra: dijkstra::Dijkstra = dijkstra::Dijkstra::new(amount_nodes);
+        let shortcuts = calc_shortcuts(
+            1,
+            &edges,
+            &up_offset,
+            &down_offset,
+            &down_index,
+            &mut dijkstra,
+            &mut amount_edges,
+        );
+
+        let expected_shortcuts: Vec<Way> = vec![];
         assert_eq!(expected_shortcuts, shortcuts);
     }
 
