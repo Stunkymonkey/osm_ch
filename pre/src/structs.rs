@@ -1,5 +1,8 @@
+use crate::OPTIMIZE_BY;
+use crate::TRAVEL_TYPE;
 use serde::Serialize;
 use std::cmp::Ordering;
+use std::convert::From;
 
 use crate::constants::*;
 
@@ -22,7 +25,6 @@ pub enum OptimizeBy {
     Distance,
 }
 
-// TODO have into-from method for conversion of these types
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub struct OsmWay {
     pub source: NodeId,
@@ -100,6 +102,27 @@ impl Way {
             contrated_previous: Some(previous),
             contrated_next: Some(next),
         }
+    }
+}
+
+impl From<OsmWay> for Way {
+    fn from(full_edge: OsmWay) -> Self {
+        let speed = match TRAVEL_TYPE {
+            TravelType::Car => full_edge.speed,
+            TravelType::CarBicycle => full_edge.speed,
+            TravelType::Bicycle if full_edge.speed <= 20 => full_edge.speed,
+            TravelType::Bicycle => 20,
+            TravelType::BicyclePedestrian if full_edge.speed <= 20 => full_edge.speed,
+            TravelType::BicyclePedestrian => 20,
+            TravelType::Pedestrian => 7,
+            TravelType::All => full_edge.speed,
+            TravelType::Undefined => 1,
+        };
+        let weight = match OPTIMIZE_BY {
+            OptimizeBy::Distance => full_edge.distance,
+            OptimizeBy::Time => full_edge.distance / speed,
+        };
+        return Way::new(full_edge.source, full_edge.target, weight);
     }
 }
 
