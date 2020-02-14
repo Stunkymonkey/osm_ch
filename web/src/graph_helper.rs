@@ -46,7 +46,6 @@ pub fn get_all_edge_ids(
 ) -> Vec<EdgeId> {
     let (outgoing, incomming) = get_edge_ids(node, &up_offset, &down_offset, &down_index);
     let mut connected_edges = outgoing;
-    // TODO merge in sorted manner
     connected_edges.extend(&incomming);
     return connected_edges;
 }
@@ -99,7 +98,6 @@ pub fn get_all_neighbours(
     down_index: &Vec<EdgeId>,
 ) -> Vec<usize> {
     let (targets, sources) = get_neighbours(node, edges, up_offset, down_offset, down_index);
-    // TODO merge sorted vecs & dedup
     let mut neighbours = targets;
     neighbours.extend(&sources);
     return neighbours;

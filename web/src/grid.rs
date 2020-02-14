@@ -133,13 +133,12 @@ fn get_points_from_cells(
     grid_offset: &Vec<GridId>,
 ) -> Vec<NodeId> {
     let mut result = Vec::<NodeId>::new();
+    // sequential is faster, then parallelizing
     for grid_id in grid_ids {
-        // TODO maybe this can be done better
         for index in grid_offset[*grid_id]..grid_offset[*grid_id + 1] {
             result.push(grid[index]);
         }
     }
-
     return result;
 }
 

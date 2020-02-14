@@ -50,6 +50,26 @@ pub fn calc_shortcuts(
     return shortcuts;
 }
 
+pub fn revert_indices(edges: &mut Vec<Way>) {
+    let maximum = edges
+        .par_iter()
+        .map(|edge| edge.id)
+        .max_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
+        .unwrap()
+        .unwrap();
+    let mut indices = vec![0; maximum + 1];
+    // TODO parallel?
+    for (i, edge) in edges.iter().enumerate() {
+        indices[edge.id.unwrap()] = i;
+    }
+    edges.par_iter_mut().for_each(|edge| {
+        if edge.contrated_previous.is_some() {
+            edge.contrated_previous = Some(indices[edge.contrated_previous.unwrap()]);
+            edge.contrated_next = Some(indices[edge.contrated_next.unwrap()]);
+        }
+    });
+}
+
 /// return new generated shortcuts
 pub fn contract_single_node(
     node: NodeId,
@@ -80,34 +100,13 @@ pub fn contract_single_node(
     connected_edges.sort_by_key(|&edge| Reverse(edge));
     // all connected nodes are moved to remaining_nodes
     for edge_id in connected_edges.iter() {
-        resulting_edges.push(edges.remove(*edge_id));
+        resulting_edges.push(edges.swap_remove(*edge_id));
     }
-    // TODO insert them at correct positions an use generate_offsets_unsafe
     // add new shortcuts
     edges.par_extend(&shortcuts);
     // recalc edge-indices
     *down_index =
         offset::generate_offsets(&mut edges, &mut up_offset, &mut down_offset, amount_nodes);
-}
-
-pub fn revert_indices(edges: &mut Vec<Way>) {
-    let maximum = edges
-        .par_iter()
-        .map(|edge| edge.id)
-        .max_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
-        .unwrap()
-        .unwrap();
-    let mut indices = vec![0; maximum + 1];
-    // TODO parallel?
-    for (i, edge) in edges.iter().enumerate() {
-        indices[edge.id.unwrap()] = i;
-    }
-    edges.par_iter_mut().for_each(|edge| {
-        if edge.contrated_previous.is_some() {
-            edge.contrated_previous = Some(indices[edge.contrated_previous.unwrap()]);
-            edge.contrated_next = Some(indices[edge.contrated_next.unwrap()]);
-        }
-    });
 }
 
 /// run full contraction
@@ -268,7 +267,7 @@ pub fn run_contraction(
     }
     println!("max_rank: {:?}", rank);
 
-    // remove edges, where source and target are identical
+    // remove edges, where source and target are identical?
 
     // testing uniqueness of ids
     // let unique_set: BTreeSet<usize> = edges.iter().cloned().map(|e| e.id.unwrap()).collect();

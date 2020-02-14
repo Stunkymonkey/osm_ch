@@ -57,7 +57,7 @@ pub fn update_neighbor_heuristics(
     down_offset: &Vec<EdgeId>,
     down_index: &Vec<EdgeId>,
 ) {
-    // TODO split vec in thread friendly amount and let run
+    // TODO split vec in thread friendly amount and let run in threads
     for neighbor in neighbors {
         heuristics[neighbor] = deleted_neighbors[neighbor] as isize
             + edge_difference(
