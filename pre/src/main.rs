@@ -1,8 +1,3 @@
-extern crate bincode;
-extern crate osmpbfreader;
-extern crate rayon;
-extern crate serde;
-
 mod constants;
 mod contraction;
 mod dijkstra;

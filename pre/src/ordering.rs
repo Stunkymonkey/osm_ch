@@ -82,6 +82,7 @@ pub fn get_independent_set(
     down_index: &Vec<NodeId>,
 ) -> Vec<NodeId> {
     minimas_bool.unvisit_all();
+    // makr all neighbors with greater equal value as invalid
     for node in remaining_nodes {
         for neighbor in
             graph_helper::get_all_neighbours(*node, &edges, &up_offset, &down_offset, &down_index)
@@ -95,7 +96,7 @@ pub fn get_independent_set(
         }
     }
 
-    // collect all indices of unvisited nodes
+    // collect all indices of valid nodes
     let result: Vec<NodeId> = remaining_nodes
         .par_iter()
         .filter(|&node| !minimas_bool.is_visited(*node))
