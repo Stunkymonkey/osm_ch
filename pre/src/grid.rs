@@ -92,4 +92,96 @@ pub fn generate_grid(
     return grid_bounds;
 }
 
-// TODO write test
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn grid_grid_bounds() {
+        let mut nodes = Vec::new();
+        nodes.push(Node {
+            latitude: 10.0,
+            longitude: 30.0,
+            rank: 0,
+        });
+        nodes.push(Node {
+            latitude: 20.0,
+            longitude: 30.0,
+            rank: 0,
+        });
+        nodes.push(Node {
+            latitude: 10.0,
+            longitude: 40.0,
+            rank: 0,
+        });
+        nodes.push(Node {
+            latitude: 20.0,
+            longitude: 40.0,
+            rank: 0,
+        });
+
+        let grid_bounds: GridBounds = get_min_max(&nodes);
+
+        assert_eq!(grid_bounds.lat_min, 10.0);
+        assert_eq!(grid_bounds.lat_max, 20.0);
+        assert_eq!(grid_bounds.lng_min, 30.0);
+        assert_eq!(grid_bounds.lng_max, 40.0);
+    }
+
+    #[test]
+    fn grid_id() {
+        let mut nodes = Vec::new();
+        nodes.push(Node {
+            latitude: 10.0,
+            longitude: 10.0,
+            rank: 0,
+        });
+        nodes.push(Node {
+            latitude: 20.0,
+            longitude: 10.0,
+            rank: 0,
+        });
+        nodes.push(Node {
+            latitude: 10.0,
+            longitude: 20.0,
+            rank: 0,
+        });
+        nodes.push(Node {
+            latitude: 20.0,
+            longitude: 20.0,
+            rank: 0,
+        });
+
+        let grid_bounds: GridBounds = get_min_max(&nodes);
+
+        let node_id = get_grid_id(
+            &Node {
+                latitude: 10.1,
+                longitude: 10.1,
+                rank: 0,
+            },
+            &grid_bounds,
+        );
+        assert_eq!(node_id, 1);
+
+        let node_id = get_grid_id(
+            &Node {
+                latitude: 10.4,
+                longitude: 10.4,
+                rank: 0,
+            },
+            &grid_bounds,
+        );
+        assert_eq!(node_id, 413);
+
+        let node_id = get_grid_id(
+            &Node {
+                latitude: 17.3,
+                longitude: 12.7,
+                rank: 0,
+            },
+            &grid_bounds,
+        );
+        assert_eq!(node_id, 3634);
+    }
+}
