@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+// r#type for escaping the rust-type command to normal type string
+
 #[derive(Deserialize, Serialize)]
 pub struct Point {
     pub latitude: f32,
@@ -11,16 +13,15 @@ pub struct Property {
     pub weight: String,
 }
 
+// request are two points
 #[derive(Deserialize, Serialize, Debug)]
 pub struct GeometryRequest {
-    // escaping the rust-type command to normal type string
     pub r#type: String,
     pub coordinates: Vec<f32>,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct FeatureRequest {
-    // escaping the rust-type command to normal type string
     pub r#type: String,
     pub properties: Option<Property>,
     pub geometry: GeometryRequest,
@@ -28,21 +29,19 @@ pub struct FeatureRequest {
 
 #[derive(Deserialize, Serialize)]
 pub struct GeoJsonRequest {
-    // escaping the rust-type command to normal type string
     pub r#type: String,
     pub features: Vec<FeatureRequest>,
 }
 
+// response is array of tuples
 #[derive(Deserialize, Serialize, Debug)]
 pub struct GeometryResponse {
-    // escaping the rust-type command to normal type string
     pub r#type: String,
     pub coordinates: Vec<(f32, f32)>,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct FeatureResponse {
-    // escaping the rust-type command to normal type string
     pub r#type: String,
     pub properties: Option<Property>,
     pub geometry: GeometryResponse,
@@ -50,7 +49,6 @@ pub struct FeatureResponse {
 
 #[derive(Deserialize, Serialize)]
 pub struct GeoJsonRespone {
-    // escaping the rust-type command to normal type string
     pub r#type: String,
     pub features: Vec<FeatureResponse>,
 }
