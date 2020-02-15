@@ -58,28 +58,37 @@ pub fn generate_grid(
     grid_offset: &mut Vec<usize>,
     nodes: &Vec<Node>,
 ) -> GridBounds {
-    grid.reserve_exact(nodes.len());
-
     let grid_bounds: GridBounds = get_min_max(nodes);
-    let mut tmp_grid = vec![vec![0; 0]; LAT_GRID_AMOUNT * LNG_GRID_AMOUNT];
 
-    // TODO remove 2d array with only 1d array mapping
-    // 2 times iterating: first calculates offsets second insert points compre to current
-    // first without concurrent and then test if with gets the same result
+    *grid_offset = vec![0; (LAT_GRID_AMOUNT * LNG_GRID_AMOUNT) + 1];
 
+    // calculate how much nodes go into each cell
+    let mut target_cells: Vec<usize> = vec![0; LAT_GRID_AMOUNT * LNG_GRID_AMOUNT];
+    for node in nodes {
+        target_cells[get_grid_id(node, &grid_bounds)] += 1;
+    }
+
+    // generate offset based on target_cells
+    for i in 1..grid_offset.len() {
+        grid_offset[i] = grid_offset[i - 1] + target_cells[i - 1];
+    }
+
+    *grid = vec![INVALID_NODE; nodes.len()];
+
+    // fill offsets, where not already filled
+    // TODO parallel?
     for (i, node) in nodes.iter().enumerate() {
-        let grid_index = get_grid_id(node, &grid_bounds);
-        tmp_grid[grid_index].push(i);
+        let grid_id = get_grid_id(node, &grid_bounds);
+        let start_index = grid_offset[grid_id];
+        let end_index = grid_offset[grid_id + 1];
+        for j in start_index..end_index {
+            if grid[j] == INVALID_NODE {
+                grid[j] = i;
+                break;
+            }
+        }
     }
 
-    // convert tmp_grid to real grid
-    grid_offset.resize((LAT_GRID_AMOUNT * LNG_GRID_AMOUNT) + 1, 0);
-    let mut k = 0;
-    for (i, cell) in tmp_grid.iter().enumerate() {
-        grid.extend(cell.iter().cloned());
-        grid_offset[i] = k;
-        k += cell.len();
-    }
     return grid_bounds;
 }
 
