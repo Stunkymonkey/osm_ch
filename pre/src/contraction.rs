@@ -70,6 +70,49 @@ pub fn revert_indices(edges: &mut Vec<Way>) {
     });
 }
 
+pub fn remove_redundant_edges(
+    mut edges: &mut Vec<Way>,
+    mut up_offset: &mut Vec<EdgeId>,
+    mut down_offset: &mut Vec<EdgeId>,
+    down_index: &mut Vec<EdgeId>,
+    amount_nodes: usize,
+) {
+    // collect removing indices
+    let remove_edges: Vec<EdgeId> = edges
+        .iter()
+        .zip(edges.iter().skip(1))
+        .enumerate()
+        .filter_map(|(i, (&x, &y))| {
+            if x.source == y.source && x.target == y.target && x.weight <= y.weight {
+                return Some(i);
+            } else {
+                return None;
+            }
+        })
+        .collect();
+
+    // check if ids is used in shortcuts
+    let mut contraction_ids = BTreeSet::new();
+    for edge in edges.into_iter() {
+        contraction_ids.insert(edge.contrated_previous);
+        contraction_ids.insert(edge.contrated_next);
+    }
+    let unused_edges: Vec<&EdgeId> = remove_edges
+        .par_iter()
+        .filter(|&x| !contraction_ids.contains(&edges[*x].id))
+        .collect();
+    println!("remove unused edges: {:?}", unused_edges.len());
+
+    // remove all of them
+    for edge_id in unused_edges.iter().rev() {
+        edges.swap_remove(**edge_id);
+    }
+
+    // update graph
+    *down_index =
+        offset::generate_offsets(&mut edges, &mut up_offset, &mut down_offset, amount_nodes);
+}
+
 /// return new generated shortcuts
 pub fn contract_single_node(
     node: NodeId,
@@ -276,7 +319,14 @@ pub fn run_contraction(
     }
     println!("max_rank: {:?}", rank);
 
-    // remove edges, where source and target are identical?
+    // remove never used edges
+    remove_redundant_edges(
+        &mut resulting_edges,
+        &mut up_offset,
+        &mut down_offset,
+        &mut down_index,
+        amount_nodes,
+    );
 
     // testing uniqueness of ids
     // let unique_set: BTreeSet<usize> = edges.iter().cloned().map(|e| e.id.unwrap()).collect();
