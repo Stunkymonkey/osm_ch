@@ -138,7 +138,7 @@ mod tests {
         let up = get_up_edge_ids(1, &up_offset);
         assert_eq!(up, vec![1, 2, 3]);
         let down = get_down_edge_ids(1, &down_offset, &down_index);
-        assert_eq!(down, vec![4, 0]);
+        assert_eq!(down, vec![0, 4]);
     }
     #[test]
     fn edge_index_line() {
@@ -208,7 +208,7 @@ mod tests {
 
         let down = get_down_edge_ids(1, &down_offset, &down_index);
         let edge_ids = get_edges_from_id(down, &edges);
-        assert_eq!(edge_ids, vec![Way::new(2, 1, 1), Way::new(0, 1, 1)]);
+        assert_eq!(edge_ids, vec![Way::new(0, 1, 1), Way::new(2, 1, 1),]);
 
         let up = get_up_edge_ids(2, &up_offset);
         let edge_ids = get_edges_from_id(up, &edges);
