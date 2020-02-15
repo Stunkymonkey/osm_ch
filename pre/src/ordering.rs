@@ -1,4 +1,5 @@
 use super::*;
+use std::sync::atomic::{AtomicIsize, Ordering};
 
 /// amount of neighbors
 pub fn node_degree(node: NodeId, up_offset: &Vec<EdgeId>, down_offset: &Vec<EdgeId>) -> usize {
@@ -36,12 +37,14 @@ pub fn calculate_heuristics(
     up_offset: &Vec<EdgeId>,
     down_offset: &Vec<EdgeId>,
     down_index: &Vec<EdgeId>,
-) -> Vec<isize> {
+) -> Vec<AtomicIsize> {
     return remaining_nodes
         .par_iter()
         .map_with(dijkstra.clone(), |mut d, x| {
-            deleted_neighbors[*x] as isize
-                + edge_difference(*x, &edges, &up_offset, &down_offset, &down_index, &mut d)
+            AtomicIsize::new(
+                deleted_neighbors[*x] as isize
+                    + edge_difference(*x, &edges, &up_offset, &down_offset, &down_index, &mut d),
+            )
         })
         .collect();
 }
@@ -49,32 +52,36 @@ pub fn calculate_heuristics(
 /// update all direct neighbors
 pub fn update_neighbor_heuristics(
     neighbors: Vec<NodeId>,
-    heuristics: &mut Vec<isize>,
-    mut dijkstra: &mut dijkstra::Dijkstra,
+    heuristics: &mut Vec<AtomicIsize>,
+    dijkstra: &mut dijkstra::Dijkstra,
     deleted_neighbors: &Vec<Weight>,
     edges: &Vec<Way>,
     up_offset: &Vec<EdgeId>,
     down_offset: &Vec<EdgeId>,
     down_index: &Vec<EdgeId>,
 ) {
-    // TODO split vec in thread friendly amount and let run in threads
-    for neighbor in neighbors {
-        heuristics[neighbor] = deleted_neighbors[neighbor] as isize
-            + edge_difference(
-                neighbor,
-                &edges,
-                &up_offset,
-                &down_offset,
-                &down_index,
-                &mut dijkstra,
-            );
-    }
+    neighbors
+        .par_iter()
+        .for_each_with(dijkstra.clone(), |mut dijkstra, neighbor| {
+            heuristics[*neighbor as usize].store(
+                deleted_neighbors[*neighbor as usize] as isize
+                    + edge_difference(
+                        *neighbor,
+                        &edges,
+                        &up_offset,
+                        &down_offset,
+                        &down_index,
+                        &mut dijkstra,
+                    ),
+                Ordering::Relaxed,
+            )
+        });
 }
 
 /// get independent set of graph using heuristic
 pub fn get_independent_set(
     remaining_nodes: &BTreeSet<NodeId>,
-    heuristics: &Vec<isize>,
+    heuristics: &Vec<AtomicIsize>,
     minimas_bool: &mut VisitedList,
     edges: &Vec<Way>,
     up_offset: &Vec<EdgeId>,
@@ -82,14 +89,15 @@ pub fn get_independent_set(
     down_index: &Vec<NodeId>,
 ) -> Vec<NodeId> {
     minimas_bool.unvisit_all();
-    // makr all neighbors with greater equal value as invalid
+    // mark all neighbors with greater equal value as invalid
     for node in remaining_nodes {
         for neighbor in
             graph_helper::get_all_neighbours(*node, &edges, &up_offset, &down_offset, &down_index)
         {
             if !minimas_bool.is_visited(neighbor)
                 && neighbor != *node
-                && heuristics[*node] >= heuristics[neighbor]
+                && heuristics[*node].load(Ordering::Relaxed)
+                    >= heuristics[neighbor].load(Ordering::Relaxed)
             {
                 minimas_bool.set_visited(*node);
             }
@@ -135,7 +143,17 @@ mod tests {
         let down_index =
             offset::generate_offsets(&mut edges, &mut up_offset, &mut down_offset, amount_nodes);
 
-        let heuristics = vec![0, 1, -2, 1, 4, 3, 1, -1, 5];
+        let heuristics = vec![
+            AtomicIsize::new(0),
+            AtomicIsize::new(1),
+            AtomicIsize::new(-2),
+            AtomicIsize::new(1),
+            AtomicIsize::new(4),
+            AtomicIsize::new(3),
+            AtomicIsize::new(1),
+            AtomicIsize::new(-1),
+            AtomicIsize::new(5),
+        ];
 
         let mut minimas_bool = VisitedList::new(amount_nodes);
 
@@ -160,7 +178,17 @@ mod tests {
         remaining_nodes.remove(&2);
         remaining_nodes.remove(&7);
 
-        let heuristics = vec![99, 1, 99, 1, 4, 3, 1, 99, 5];
+        let heuristics = vec![
+            AtomicIsize::new(99),
+            AtomicIsize::new(1),
+            AtomicIsize::new(99),
+            AtomicIsize::new(1),
+            AtomicIsize::new(4),
+            AtomicIsize::new(3),
+            AtomicIsize::new(1),
+            AtomicIsize::new(99),
+            AtomicIsize::new(5),
+        ];
         let minima = get_independent_set(
             &remaining_nodes,
             &heuristics,
