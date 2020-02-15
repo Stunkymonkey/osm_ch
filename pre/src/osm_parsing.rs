@@ -37,7 +37,6 @@ fn resolve_max_speed(s: &str) -> Result<usize, &str> {
 
 /// approximates the speed limit based on given highway type
 // infos from https://wiki.openstreetmap.org/wiki/Key:highway
-// TODO check if more types can be added
 fn aproximate_speed_limit(s: &str) -> usize {
     return match s {
         "motorway" => 120,

@@ -76,7 +76,6 @@ pub fn generate_grid(
     *grid = vec![INVALID_NODE; nodes.len()];
 
     // fill offsets, where not already filled
-    // TODO parallel?
     for (i, node) in nodes.iter().enumerate() {
         let grid_id = get_grid_id(node, &grid_bounds);
         let start_index = grid_offset[grid_id];

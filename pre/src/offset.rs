@@ -2,7 +2,6 @@ use super::*;
 
 /// fill offset array
 fn fill_offset(edges: Vec<NodeId>, offset: &mut Vec<usize>) {
-    // TODO check two concated for loops is faster
     for edge in edges {
         offset[edge + 1] += 1;
     }
