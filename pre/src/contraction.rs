@@ -50,26 +50,6 @@ pub fn calc_shortcuts(
     return shortcuts;
 }
 
-pub fn revert_indices(edges: &mut Vec<Way>) {
-    let maximum = edges
-        .par_iter()
-        .map(|edge| edge.id)
-        .max_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
-        .unwrap()
-        .unwrap();
-    let mut indices = vec![0; maximum + 1];
-    // TODO parallel?
-    for (i, edge) in edges.iter().enumerate() {
-        indices[edge.id.unwrap()] = i;
-    }
-    edges.par_iter_mut().for_each(|edge| {
-        if edge.contrated_previous.is_some() {
-            edge.contrated_previous = Some(indices[edge.contrated_previous.unwrap()]);
-            edge.contrated_next = Some(indices[edge.contrated_next.unwrap()]);
-        }
-    });
-}
-
 pub fn remove_redundant_edges(
     mut edges: &mut Vec<Way>,
     mut up_offset: &mut Vec<EdgeId>,
@@ -83,7 +63,7 @@ pub fn remove_redundant_edges(
         .zip(edges.iter().skip(1))
         .enumerate()
         .filter_map(|(i, (&x, &y))| {
-            if x.source == y.source && x.target == y.target && x.weight <= y.weight {
+            if x.source == y.source && x.target == y.target && x.weight >= y.weight {
                 return Some(i);
             } else {
                 return None;
@@ -97,6 +77,8 @@ pub fn remove_redundant_edges(
         contraction_ids.insert(edge.contrated_previous);
         contraction_ids.insert(edge.contrated_next);
     }
+    contraction_ids.remove(&None);
+
     let unused_edges: Vec<&EdgeId> = remove_edges
         .par_iter()
         .filter(|&x| !contraction_ids.contains(&edges[*x].id))
@@ -111,6 +93,27 @@ pub fn remove_redundant_edges(
     // update graph
     *down_index =
         offset::generate_offsets(&mut edges, &mut up_offset, &mut down_offset, amount_nodes);
+}
+
+pub fn revert_indices(edges: &mut Vec<Way>) {
+    let maximum_id = edges
+        .par_iter()
+        .map(|edge| edge.id)
+        .max_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
+        .unwrap()
+        .unwrap();
+    let mut indices = vec![INVALID_NODE; maximum_id + 1];
+
+    for (i, edge) in edges.iter().enumerate() {
+        indices[edge.id.unwrap()] = i;
+    }
+
+    edges.par_iter_mut().for_each(|edge| {
+        if edge.contrated_previous.is_some() {
+            edge.contrated_previous = Some(indices[edge.contrated_previous.unwrap()]);
+            edge.contrated_next = Some(indices[edge.contrated_next.unwrap()]);
+        }
+    });
 }
 
 /// return new generated shortcuts
@@ -290,7 +293,6 @@ pub fn run_contraction(
             resulting_edges.push(edges.swap_remove(*edge_id));
         }
 
-        // TODO check shortcuts ids, should be recreated maybe
         // add new shortcuts to edges
         edges.par_extend(&shortcuts);
 
@@ -756,6 +758,40 @@ mod tests {
         expected_edges.push(Way::test(9, 4, 1, 10));
 
         revert_indices(&mut edges);
+
+        assert_eq!(edges, expected_edges);
+    }
+
+    #[test]
+    fn remove_redundant_test() {
+        //   1
+        //  / \
+        // 0---2
+
+        let amount_nodes = 3;
+        let mut edges = Vec::<Way>::new();
+        edges.push(Way::test(0, 1, 13, 0));
+        edges.push(Way::test(0, 2, 26, 3));
+        edges.push(Way::shortcut(0, 2, 25, 0, 1, 2));
+        edges.push(Way::test(1, 2, 12, 1));
+
+        let mut up_offset = Vec::<EdgeId>::new();
+        let mut down_offset = Vec::<EdgeId>::new();
+        let mut down_index =
+            offset::generate_offsets(&mut edges, &mut up_offset, &mut down_offset, amount_nodes);
+
+        let mut expected_edges = Vec::<Way>::new();
+        expected_edges.push(Way::test(0, 1, 13, 0));
+        expected_edges.push(Way::shortcut(0, 2, 25, 0, 1, 2));
+        expected_edges.push(Way::test(1, 2, 12, 1));
+
+        remove_redundant_edges(
+            &mut edges,
+            &mut up_offset,
+            &mut down_offset,
+            &mut down_index,
+            amount_nodes,
+        );
 
         assert_eq!(edges, expected_edges);
     }
