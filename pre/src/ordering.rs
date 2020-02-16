@@ -88,21 +88,21 @@ pub fn get_independent_set(
     down_offset: &Vec<EdgeId>,
     down_index: &Vec<NodeId>,
 ) -> Vec<NodeId> {
-    // let subset: Vec<NodeId>;
-    // let mut remaining_nodes_vector: Vec<NodeId> =
-    //     remaining_nodes.iter().map(|&node| node).collect();
-    // if remaining_nodes.len() > 10_000 {
-    //     // sort remaining_nodes via heuristic
-    //     remaining_nodes_vector.par_sort_by_key(|&node| heuristics[node].load(Ordering::Relaxed));
-    //     // take lower 1/4
-    //     subset = (&remaining_nodes_vector[0..remaining_nodes_vector.len() / 4]).to_vec();
-    // } else {
-    //     subset = remaining_nodes_vector;
-    // }
+    let subset: Vec<NodeId>;
+    let mut remaining_nodes_vector: Vec<NodeId> =
+        remaining_nodes.iter().map(|&node| node).collect();
+    if remaining_nodes.len() > 10_000 {
+        // sort remaining_nodes via heuristic
+        remaining_nodes_vector.par_sort_by_key(|&node| heuristics[node].load(Ordering::Relaxed));
+        // take lower 1/4
+        subset = (&remaining_nodes_vector[0..remaining_nodes_vector.len() / 4]).to_vec();
+    } else {
+        subset = remaining_nodes_vector;
+    }
 
     minimas_bool.unvisit_all();
     // mark all neighbors with greater equal value as invalid
-    for node in remaining_nodes {
+    for node in &subset {
         for neighbor in
             graph_helper::get_all_neighbours(*node, &edges, &up_offset, &down_offset, &down_index)
         {
@@ -117,7 +117,7 @@ pub fn get_independent_set(
     }
 
     // collect all indices of valid nodes
-    let result: Vec<NodeId> = remaining_nodes
+    let result: Vec<NodeId> = subset
         .par_iter()
         .filter(|&node| !minimas_bool.is_visited(*node))
         .map(|node| node.clone())
