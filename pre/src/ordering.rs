@@ -1,6 +1,4 @@
 use super::*;
-use std::sync::atomic::{AtomicIsize, Ordering};
-
 /// amount of neighbors
 pub fn node_degree(node: NodeId, up_offset: &Vec<EdgeId>, down_offset: &Vec<EdgeId>) -> usize {
     return up_offset[node + 1] - up_offset[node] + down_offset[node + 1] - down_offset[node];
@@ -9,23 +7,45 @@ pub fn node_degree(node: NodeId, up_offset: &Vec<EdgeId>, down_offset: &Vec<Edge
 /// calculating the edge-distance heuristic of single node
 fn edge_difference(
     node: NodeId,
+    mut dijkstra: &mut dijkstra::Dijkstra,
+    shortcut_id: &AtomicUsize,
     edges: &Vec<Way>,
     up_offset: &Vec<EdgeId>,
     down_offset: &Vec<EdgeId>,
     down_index: &Vec<EdgeId>,
-    mut dijkstra: &mut dijkstra::Dijkstra,
 ) -> isize {
     let shortcuts = contraction::calc_shortcuts(
         node,
+        &mut dijkstra,
         &edges,
         &up_offset,
         &down_offset,
         &down_index,
-        &mut dijkstra,
-        &mut edges.len(),
+        &shortcut_id,
     );
-    // TODO save shortcuts
     return shortcuts.len() as isize - node_degree(node, &up_offset, &down_offset) as isize;
+}
+
+pub fn calculate_single_heuristic(
+    node: NodeId,
+    mut dijkstra: &mut dijkstra::Dijkstra,
+    deleted_neighbors: &Vec<Weight>,
+    shortcut_id: &AtomicUsize,
+    edges: &Vec<Way>,
+    up_offset: &Vec<EdgeId>,
+    down_offset: &Vec<EdgeId>,
+    down_index: &Vec<EdgeId>,
+) -> isize {
+    return deleted_neighbors[node] as isize
+        + edge_difference(
+            node,
+            &mut dijkstra,
+            &shortcut_id,
+            &edges,
+            &up_offset,
+            &down_offset,
+            &down_index,
+        );
 }
 
 /// calculate heuristic in parallel
@@ -33,6 +53,7 @@ pub fn calculate_heuristics(
     remaining_nodes: &BTreeSet<NodeId>,
     dijkstra: &dijkstra::Dijkstra,
     deleted_neighbors: &Vec<Weight>,
+    shortcut_id: &AtomicUsize,
     edges: &Vec<Way>,
     up_offset: &Vec<EdgeId>,
     down_offset: &Vec<EdgeId>,
@@ -40,11 +61,17 @@ pub fn calculate_heuristics(
 ) -> Vec<AtomicIsize> {
     return remaining_nodes
         .par_iter()
-        .map_with(dijkstra.clone(), |mut d, x| {
-            AtomicIsize::new(
-                deleted_neighbors[*x] as isize
-                    + edge_difference(*x, &edges, &up_offset, &down_offset, &down_index, &mut d),
-            )
+        .map_with(dijkstra.clone(), |mut dijkstra, node| {
+            AtomicIsize::new(calculate_single_heuristic(
+                *node,
+                &mut dijkstra,
+                &deleted_neighbors,
+                &shortcut_id,
+                &edges,
+                &up_offset,
+                &down_offset,
+                &down_index,
+            ))
         })
         .collect();
 }
@@ -55,6 +82,7 @@ pub fn update_neighbor_heuristics(
     heuristics: &mut Vec<AtomicIsize>,
     dijkstra: &mut dijkstra::Dijkstra,
     deleted_neighbors: &Vec<Weight>,
+    shortcut_id: &AtomicUsize,
     edges: &Vec<Way>,
     up_offset: &Vec<EdgeId>,
     down_offset: &Vec<EdgeId>,
@@ -63,18 +91,17 @@ pub fn update_neighbor_heuristics(
     neighbors
         .par_iter()
         .for_each_with(dijkstra.clone(), |mut dijkstra, neighbor| {
-            heuristics[*neighbor as usize].store(
-                deleted_neighbors[*neighbor as usize] as isize
-                    + edge_difference(
-                        *neighbor,
-                        &edges,
-                        &up_offset,
-                        &down_offset,
-                        &down_index,
-                        &mut dijkstra,
-                    ),
-                Ordering::Relaxed,
-            )
+            let new_value = calculate_single_heuristic(
+                *neighbor,
+                &mut dijkstra,
+                &deleted_neighbors,
+                &shortcut_id,
+                &edges,
+                &up_offset,
+                &down_offset,
+                &down_index,
+            );
+            heuristics[*neighbor as usize].store(new_value, Ordering::Relaxed);
         });
 }
 

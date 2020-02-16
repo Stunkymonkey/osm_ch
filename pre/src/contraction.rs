@@ -1,16 +1,15 @@
 use super::*;
 use std::cmp::Reverse;
-// use std::sync::{Arc, Mutex};
 
 /// return new generated shortcuts
 pub fn calc_shortcuts(
     node: NodeId,
+    dijkstra: &mut dijkstra::Dijkstra,
     edges: &Vec<Way>,
     up_offset: &Vec<EdgeId>,
     down_offset: &Vec<EdgeId>,
     down_index: &Vec<EdgeId>,
-    dijkstra: &mut dijkstra::Dijkstra,
-    amount_edges: &mut usize,
+    shortcut_id: &AtomicUsize,
 ) -> Vec<Way> {
     let mut shortcuts = Vec::<Way>::new();
     // get node neighbors
@@ -29,6 +28,7 @@ pub fn calc_shortcuts(
             }
             let shortest_path =
                 dijkstra.find_path(source_node, target_node, up_offset, edges, false);
+
             // create new shortcut where found path is shortest
             if shortest_path.is_some() {
                 let shortest_path = shortest_path.unwrap();
@@ -37,12 +37,11 @@ pub fn calc_shortcuts(
                         source: source_node,
                         target: target_node,
                         weight: weight,
-                        id: Some(*amount_edges),
+                        id: Some(shortcut_id.fetch_add(1, Ordering::SeqCst)),
                         // do not use edge.index, because it will change during contraction
                         contrated_previous: Some(edges[source_edge].id.unwrap()),
                         contrated_next: Some(edges[*target_edge].id.unwrap()),
                     });
-                    *amount_edges += 1;
                 }
             }
         }
@@ -126,16 +125,16 @@ pub fn contract_single_node(
     mut dijkstra: &mut dijkstra::Dijkstra,
     resulting_edges: &mut Vec<Way>,
     amount_nodes: usize,
-    mut amount_edges: &mut usize,
+    shortcut_id: &AtomicUsize,
 ) {
     let shortcuts = calc_shortcuts(
         node,
+        &mut dijkstra,
         &mut edges,
         &mut up_offset,
         &mut down_offset,
         &mut down_index,
-        &mut dijkstra,
-        &mut amount_edges,
+        &shortcut_id,
     );
 
     // get all connected edges of one node
@@ -165,7 +164,7 @@ pub fn run_contraction(
 ) {
     let amount_nodes: usize = nodes.len();
     // maybe shared atomic mutex?
-    let mut amount_edges: usize = edges.len();
+    let shortcut_id = AtomicUsize::new(edges.len());
 
     // make edges have indices
     edges
@@ -180,6 +179,7 @@ pub fn run_contraction(
     for node_id in 0..amount_nodes {
         remaining_nodes.insert(node_id);
     }
+    // let mut remaining_nodes: Vec<NodeId> = (0..nodes.len()).map(usize::from).collect();
 
     let mut dijkstra = dijkstra::Dijkstra::new(amount_nodes);
 
@@ -189,6 +189,8 @@ pub fn run_contraction(
         &remaining_nodes,
         &dijkstra,
         &deleted_neighbors,
+        // pre_calc_shortcuts.clone(),
+        &shortcut_id,
         &edges,
         &up_offset,
         &down_offset,
@@ -226,12 +228,12 @@ pub fn run_contraction(
             // collect all new shortcuts
             shortcuts.par_extend(calc_shortcuts(
                 *node,
+                &mut dijkstra,
                 &mut edges,
                 &mut up_offset,
                 &mut down_offset,
                 &mut down_index,
-                &mut dijkstra,
-                &mut amount_edges,
+                &shortcut_id,
             ));
 
             // get all connected edges of minimum
@@ -272,6 +274,8 @@ pub fn run_contraction(
             &mut heuristics,
             &mut dijkstra,
             &deleted_neighbors,
+            // pre_calc_shortcuts.clone(),
+            &shortcut_id,
             &edges,
             &up_offset,
             &down_offset,
@@ -311,10 +315,11 @@ pub fn run_contraction(
         }
 
         println!(
-            "remaining_nodes {:?} \tindependent_set.len {:?} \tedges.len {:?} \tremoving_edges.len {:?} \tresulting_edges.len {:?}",
+            "remaining_nodes {:?} \tindependent_set.len {:?} \tedges.len {:?} \tshortcuts.len {:?} \tremoving_edges.len {:?} \tresulting_edges.len {:?}",
             remaining_nodes.len(),
             minimas.len(),
             edges.len(),
+            shortcuts.len(),
             connected_edges.len(),
             resulting_edges.len()
         );
@@ -359,7 +364,7 @@ mod tests {
         edges.push(Way::test(2, 3, 3, 2));
         edges.push(Way::test(2, 4, 1, 3));
 
-        let mut amount_edges = edges.len();
+        let shortcut_id = AtomicUsize::new(edges.len());
 
         let mut up_offset = Vec::<EdgeId>::new();
         let mut down_offset = Vec::<EdgeId>::new();
@@ -368,19 +373,19 @@ mod tests {
         let mut dijkstra: dijkstra::Dijkstra = dijkstra::Dijkstra::new(amount_nodes);
         let shortcuts = calc_shortcuts(
             2,
+            &mut dijkstra,
             &edges,
             &up_offset,
             &down_offset,
             &down_index,
-            &mut dijkstra,
-            &mut amount_edges,
+            &shortcut_id,
         );
 
         let expected_shortcuts = vec![
-            Way::shortcut(1, 3, 5, 1, 2, 4),
-            Way::shortcut(1, 4, 3, 1, 3, 5),
-            Way::shortcut(0, 3, 4, 0, 2, 6),
-            Way::shortcut(0, 4, 2, 0, 3, 7),
+            Way::shortcut(0, 3, 4, 0, 2, 4),
+            Way::shortcut(0, 4, 2, 0, 3, 5),
+            Way::shortcut(1, 3, 5, 1, 2, 6),
+            Way::shortcut(1, 4, 3, 1, 3, 7),
         ];
         assert_eq!(expected_shortcuts, shortcuts);
     }
@@ -397,7 +402,7 @@ mod tests {
         edges.push(Way::test(0, 3, 1, 1));
         edges.push(Way::test(3, 2, 1, 3));
 
-        let mut amount_edges = edges.len();
+        let shortcut_id = AtomicUsize::new(edges.len());
 
         let mut up_offset = Vec::<EdgeId>::new();
         let mut down_offset = Vec::<EdgeId>::new();
@@ -406,12 +411,12 @@ mod tests {
         let mut dijkstra: dijkstra::Dijkstra = dijkstra::Dijkstra::new(amount_nodes);
         let shortcuts = calc_shortcuts(
             1,
+            &mut dijkstra,
             &edges,
             &up_offset,
             &down_offset,
             &down_index,
-            &mut dijkstra,
-            &mut amount_edges,
+            &shortcut_id,
         );
 
         let expected_shortcuts = vec![Way::shortcut(0, 2, 2, 0, 2, 4)];
@@ -431,7 +436,7 @@ mod tests {
         edges.push(Way::test(1, 2, 1, 2));
         edges.push(Way::test(3, 1, 1, 3));
 
-        let mut amount_edges = edges.len();
+        let shortcut_id = AtomicUsize::new(edges.len());
 
         let mut up_offset = Vec::<EdgeId>::new();
         let mut down_offset = Vec::<EdgeId>::new();
@@ -440,12 +445,12 @@ mod tests {
         let mut dijkstra: dijkstra::Dijkstra = dijkstra::Dijkstra::new(amount_nodes);
         let shortcuts = calc_shortcuts(
             1,
+            &mut dijkstra,
             &edges,
             &up_offset,
             &down_offset,
             &down_index,
-            &mut dijkstra,
-            &mut amount_edges,
+            &shortcut_id,
         );
 
         // no need for a shortcut 0->1->2, because there is already the shortcut 3->1->2
@@ -469,7 +474,7 @@ mod tests {
         edges.push(Way::test(3, 4, 3, 5));
         edges.push(Way::test(4, 2, 1, 6));
 
-        let mut amount_edges = edges.len();
+        let shortcut_id = AtomicUsize::new(edges.len());
 
         let mut up_offset = Vec::<EdgeId>::new();
         let mut down_offset = Vec::<EdgeId>::new();
@@ -478,12 +483,12 @@ mod tests {
         let mut dijkstra: dijkstra::Dijkstra = dijkstra::Dijkstra::new(amount_nodes);
         let shortcuts = calc_shortcuts(
             1,
+            &mut dijkstra,
             &edges,
             &up_offset,
             &down_offset,
             &down_index,
-            &mut dijkstra,
-            &mut amount_edges,
+            &shortcut_id,
         );
 
         // there should be a shortcut 0->2, but no shortcuts 0->4, 3->2
@@ -506,7 +511,7 @@ mod tests {
         edges.push(Way::new(2, 0, 1));
         edges.push(Way::new(2, 1, 1));
 
-        let mut amount_edges = edges.len();
+        let shortcut_id = AtomicUsize::new(edges.len());
 
         let mut up_offset = Vec::<EdgeId>::new();
         let mut down_offset = Vec::<EdgeId>::new();
@@ -515,12 +520,12 @@ mod tests {
         let mut dijkstra: dijkstra::Dijkstra = dijkstra::Dijkstra::new(amount_nodes);
         let shortcuts = calc_shortcuts(
             1,
+            &mut dijkstra,
             &edges,
             &up_offset,
             &down_offset,
             &down_index,
-            &mut dijkstra,
-            &mut amount_edges,
+            &shortcut_id,
         );
 
         let expected_shortcuts: Vec<Way> = vec![];
@@ -549,7 +554,8 @@ mod tests {
         edges.push(Way::test(4, 0, 1, 8));
         edges.push(Way::test(4, 3, 1, 9));
 
-        let mut amount_edges = edges.len();
+        let amount_edges = edges.len();
+        let shortcut_id = AtomicUsize::new(amount_edges);
 
         let mut up_offset = Vec::<EdgeId>::new();
         let mut down_offset = Vec::<EdgeId>::new();
@@ -566,8 +572,8 @@ mod tests {
             &mut down_index,
             &mut dijkstra,
             &mut resulting_edges,
-            amount_nodes,
-            &mut amount_edges,
+            amount_edges,
+            &shortcut_id,
         );
         let mut expected_edges = Vec::<Way>::new();
 
@@ -594,7 +600,10 @@ mod tests {
             .map(|node| node.id.unwrap())
             .max_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
             .unwrap();
-        assert_eq!(amount_edges, max_id + 1);
+        assert_eq!(
+            expected_resulting_edges.len() + expected_edges.len(),
+            max_id + 1
+        );
     }
 
     #[test]
@@ -621,7 +630,8 @@ mod tests {
         edges.push(Way::test(8, 9, 1, 11));
         edges.push(Way::test(9, 4, 1, 10));
 
-        let mut amount_edges = edges.len();
+        let amount_edges = edges.len();
+        let shortcut_id = AtomicUsize::new(amount_edges);
 
         let mut up_offset = Vec::<EdgeId>::new();
         let mut down_offset = Vec::<EdgeId>::new();
@@ -641,8 +651,8 @@ mod tests {
                 &mut down_index,
                 &mut dijkstra,
                 &mut resulting_edges,
-                amount_nodes,
-                &mut amount_edges,
+                amount_edges,
+                &shortcut_id,
             );
         }
         let mut expected_edges = Vec::<Way>::new();
@@ -678,8 +688,8 @@ mod tests {
                 &mut down_index,
                 &mut dijkstra,
                 &mut resulting_edges,
-                amount_nodes,
-                &mut amount_edges,
+                amount_edges,
+                &shortcut_id,
             );
         }
 
@@ -700,7 +710,7 @@ mod tests {
             .map(|node| node.id.unwrap())
             .max_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
             .unwrap();
-        assert_eq!(amount_edges, max_id + 1);
+        assert_eq!(expected_resulting_edges.len(), max_id + 1);
     }
 
     #[test]
