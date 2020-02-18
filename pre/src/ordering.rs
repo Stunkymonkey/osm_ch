@@ -13,6 +13,7 @@ fn edge_difference(
     up_offset: &Vec<EdgeId>,
     down_offset: &Vec<EdgeId>,
     down_index: &Vec<EdgeId>,
+    rank: usize,
 ) -> isize {
     let shortcuts = contraction::calc_shortcuts(
         node,
@@ -22,8 +23,10 @@ fn edge_difference(
         &down_offset,
         &down_index,
         &shortcut_id,
+        rank,
     );
-    return shortcuts.len() as isize - node_degree(node, &up_offset, &down_offset) as isize;
+    let shortcut_len = shortcuts.len();
+    return shortcut_len as isize - node_degree(node, &up_offset, &down_offset) as isize;
 }
 
 pub fn calculate_single_heuristic(
@@ -35,6 +38,7 @@ pub fn calculate_single_heuristic(
     up_offset: &Vec<EdgeId>,
     down_offset: &Vec<EdgeId>,
     down_index: &Vec<EdgeId>,
+    rank: usize,
 ) -> isize {
     return deleted_neighbors[node] as isize
         + edge_difference(
@@ -45,6 +49,7 @@ pub fn calculate_single_heuristic(
             &up_offset,
             &down_offset,
             &down_index,
+            rank,
         );
 }
 
@@ -58,6 +63,7 @@ pub fn calculate_heuristics(
     up_offset: &Vec<EdgeId>,
     down_offset: &Vec<EdgeId>,
     down_index: &Vec<EdgeId>,
+    rank: usize,
 ) -> Vec<AtomicIsize> {
     return remaining_nodes
         .par_iter()
@@ -71,6 +77,7 @@ pub fn calculate_heuristics(
                 &up_offset,
                 &down_offset,
                 &down_index,
+                rank,
             ))
         })
         .collect();
@@ -87,6 +94,7 @@ pub fn update_neighbor_heuristics(
     up_offset: &Vec<EdgeId>,
     down_offset: &Vec<EdgeId>,
     down_index: &Vec<EdgeId>,
+    rank: usize,
 ) {
     neighbors
         .par_iter()
@@ -100,6 +108,7 @@ pub fn update_neighbor_heuristics(
                 &up_offset,
                 &down_offset,
                 &down_index,
+                rank,
             );
             heuristics[*neighbor as usize].store(new_value, Ordering::Relaxed);
         });

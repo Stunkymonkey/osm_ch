@@ -70,7 +70,11 @@ pub fn remove_redundant_edges(
         .zip(edges.iter().skip(1))
         .enumerate()
         .filter_map(|(i, (&x, &y))| {
-            if x.source == y.source && x.target == y.target && x.weight >= y.weight {
+            if x.source == y.source
+                && x.target == y.target
+                && x.weight >= y.weight
+                && x.contrated_previous.is_none()
+            {
                 return Some(i);
             } else {
                 return None;
@@ -134,6 +138,7 @@ pub fn contract_single_node(
     resulting_edges: &mut Vec<Way>,
     amount_nodes: usize,
     shortcut_id: &AtomicUsize,
+    rank: usize,
 ) {
     let shortcuts = calc_shortcuts(
         node,
@@ -143,6 +148,7 @@ pub fn contract_single_node(
         &mut down_offset,
         &mut down_index,
         &shortcut_id,
+        rank,
     );
 
     // get all connected edges of one node
@@ -171,7 +177,7 @@ pub fn run_contraction(
     mut down_index: &mut Vec<EdgeId>,
 ) {
     let amount_nodes: usize = nodes.len();
-    // maybe shared atomic mutex?
+    // for keeping track of new created edge_ids
     let shortcut_id = AtomicUsize::new(edges.len());
 
     // make edges have indices
@@ -180,7 +186,6 @@ pub fn run_contraction(
         .enumerate()
         .for_each(|(i, x)| x.id = Some(i));
 
-    // let pre_calc_shortcuts = Arc::new(Mutex::new(vec![Vec::<Way>::new(); amount_nodes]));
     let mut resulting_edges = Vec::<Way>::with_capacity(edges.len() * 2);
 
     let mut remaining_nodes = BTreeSet::new();
@@ -190,6 +195,8 @@ pub fn run_contraction(
     // let mut remaining_nodes: Vec<NodeId> = (0..nodes.len()).map(usize::from).collect();
 
     let mut dijkstra = dijkstra::Dijkstra::new(amount_nodes);
+    let mut rank: Rank = 0;
+    let mut minimas_bool = VisitedList::new(amount_nodes);
 
     // update priorities of all nodes with simulated contractions
     let mut deleted_neighbors = vec![0; amount_nodes];
@@ -197,16 +204,13 @@ pub fn run_contraction(
         &remaining_nodes,
         &dijkstra,
         &deleted_neighbors,
-        // pre_calc_shortcuts.clone(),
         &shortcut_id,
         &edges,
         &up_offset,
         &down_offset,
         &down_index,
+        rank,
     );
-
-    let mut minimas_bool = VisitedList::new(amount_nodes);
-    let mut rank: Rank = 0;
 
     while !remaining_nodes.is_empty() {
         let get_independent_set_time = Instant::now();
@@ -229,29 +233,30 @@ pub fn run_contraction(
 
         let shortcuts_time = Instant::now();
         // E ← necessary shortcuts
-        let mut shortcuts = Vec::new();
-        let mut connected_edges = Vec::new();
+        let shortcuts: Vec<Way> = minimas
+            .par_iter()
+            .map_with(dijkstra.clone(), |mut dijkstra, node| {
+                calc_shortcuts(
+                    *node,
+                    &mut dijkstra,
+                    &edges,
+                    &up_offset,
+                    &down_offset,
+                    &down_index,
+                    &shortcut_id,
+                    rank,
+                )
+            })
+            .flatten()
+            .collect();
 
-        for node in &minimas {
-            // collect all new shortcuts
-            shortcuts.par_extend(calc_shortcuts(
-                *node,
-                &mut dijkstra,
-                &mut edges,
-                &mut up_offset,
-                &mut down_offset,
-                &mut down_index,
-                &shortcut_id,
-            ));
-
-            // get all connected edges of minimum
-            connected_edges.par_extend(graph_helper::get_all_edge_ids(
-                *node,
-                &up_offset,
-                &down_offset,
-                &down_index,
-            ));
-        }
+        let mut connected_edges: Vec<EdgeId> = minimas
+            .par_iter()
+            .map(|node| {
+                graph_helper::get_all_edge_ids(*node, &up_offset, &down_offset, &down_index)
+            })
+            .flatten()
+            .collect();
 
         if remaining_nodes.len() > 1_000 {
             println!("shortcuts time in: {:?}", shortcuts_time.elapsed());
@@ -282,12 +287,12 @@ pub fn run_contraction(
             &mut heuristics,
             &mut dijkstra,
             &deleted_neighbors,
-            // pre_calc_shortcuts.clone(),
             &shortcut_id,
             &edges,
             &up_offset,
             &down_offset,
             &down_index,
+            rank,
         );
 
         if remaining_nodes.len() > 1_000 {
@@ -300,6 +305,8 @@ pub fn run_contraction(
         let other_time = Instant::now();
         // sort in reverse order for removing from bottom up
         connected_edges.sort_by_key(|&edge| Reverse(edge));
+        // TODO needed?
+        connected_edges.dedup();
         // insert E into remaining graph
         for edge_id in connected_edges.iter() {
             resulting_edges.push(edges.swap_remove(*edge_id));
@@ -389,6 +396,7 @@ mod tests {
             &down_offset,
             &down_index,
             &shortcut_id,
+            0,
         );
 
         let expected_shortcuts = vec![
@@ -427,6 +435,7 @@ mod tests {
             &down_offset,
             &down_index,
             &shortcut_id,
+            0,
         );
 
         let expected_shortcuts = vec![Way::shortcut(0, 2, 2, 0, 2, 4)];
@@ -461,6 +470,7 @@ mod tests {
             &down_offset,
             &down_index,
             &shortcut_id,
+            0,
         );
 
         // no need for a shortcut 0->1->2, because there is already the shortcut 3->1->2
@@ -499,6 +509,7 @@ mod tests {
             &down_offset,
             &down_index,
             &shortcut_id,
+            0,
         );
 
         // there should be a shortcut 0->2, but no shortcuts 0->4, 3->2
@@ -536,9 +547,90 @@ mod tests {
             &down_offset,
             &down_index,
             &shortcut_id,
+            0,
         );
 
         let expected_shortcuts: Vec<Way> = vec![];
+        assert_eq!(expected_shortcuts, shortcuts);
+    }
+
+    #[test]
+    fn contract_order() {
+        // 0 -> 1 -> 2
+        // |  /   \  |
+        // 3 --->--- 4
+        let amount_nodes = 5;
+
+        let mut edges = Vec::<Way>::new();
+        edges.push(Way::test(0, 1, 1, 0));
+        edges.push(Way::test(1, 2, 1, 2));
+        edges.push(Way::test(0, 3, 1, 1));
+        edges.push(Way::test(3, 1, 5, 4));
+        edges.push(Way::test(1, 4, 4, 3));
+        edges.push(Way::test(3, 4, 3, 5));
+        edges.push(Way::test(4, 2, 1, 6));
+
+        let shortcut_id = AtomicUsize::new(edges.len());
+
+        let mut up_offset = Vec::<EdgeId>::new();
+        let mut down_offset = Vec::<EdgeId>::new();
+        let down_index =
+            offset::generate_offsets(&mut edges, &mut up_offset, &mut down_offset, amount_nodes);
+        let mut dijkstra: dijkstra::Dijkstra = dijkstra::Dijkstra::new(amount_nodes);
+        let shortcuts = calc_shortcuts(
+            1,
+            &mut dijkstra,
+            &edges,
+            &up_offset,
+            &down_offset,
+            &down_index,
+            &shortcut_id,
+            0,
+        );
+
+        let expected_shortcuts = vec![Way::shortcut(0, 2, 2, 0, 2, 7)];
+        assert_eq!(expected_shortcuts, shortcuts);
+
+        let shortcuts = calc_shortcuts(
+            1,
+            &mut dijkstra,
+            &edges,
+            &up_offset,
+            &down_offset,
+            &down_index,
+            &shortcut_id,
+            1,
+        );
+
+        let expected_shortcuts = vec![Way::shortcut(0, 2, 2, 0, 2, 8)];
+        assert_eq!(expected_shortcuts, shortcuts);
+
+        let shortcuts = calc_shortcuts(
+            3,
+            &mut dijkstra,
+            &edges,
+            &up_offset,
+            &down_offset,
+            &down_index,
+            &shortcut_id,
+            1,
+        );
+
+        let expected_shortcuts = vec![Way::shortcut(0, 4, 4, 1, 5, 9)];
+        assert_eq!(expected_shortcuts, shortcuts);
+
+        let shortcuts = calc_shortcuts(
+            1,
+            &mut dijkstra,
+            &edges,
+            &up_offset,
+            &down_offset,
+            &down_index,
+            &shortcut_id,
+            2,
+        );
+
+        let expected_shortcuts = vec![Way::shortcut(0, 2, 2, 0, 2, 10)];
         assert_eq!(expected_shortcuts, shortcuts);
     }
 
@@ -584,6 +676,7 @@ mod tests {
             &mut resulting_edges,
             amount_edges,
             &shortcut_id,
+            0,
         );
         let mut expected_edges = Vec::<Way>::new();
 
@@ -663,6 +756,7 @@ mod tests {
                 &mut resulting_edges,
                 amount_edges,
                 &shortcut_id,
+                0,
             );
         }
         let mut expected_edges = Vec::<Way>::new();
@@ -700,6 +794,7 @@ mod tests {
                 &mut resulting_edges,
                 amount_edges,
                 &shortcut_id,
+                1,
             );
         }
 
