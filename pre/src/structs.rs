@@ -107,7 +107,7 @@ impl Way {
 
 impl From<OsmWay> for Way {
     fn from(full_edge: OsmWay) -> Self {
-        let mut speed = match TRAVEL_TYPE {
+        let mut speed: usize = match TRAVEL_TYPE {
             TravelType::Car => full_edge.speed,
             TravelType::CarBicycle => full_edge.speed,
             TravelType::Bicycle if full_edge.speed <= 20 => full_edge.speed,
@@ -118,7 +118,7 @@ impl From<OsmWay> for Way {
             TravelType::All => full_edge.speed,
             TravelType::Undefined => 1,
         };
-        if speed <= 0 {
+        if speed == 0 {
             speed = 1;
         }
         let weight = match OPTIMIZE_BY {
