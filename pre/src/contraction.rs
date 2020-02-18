@@ -343,9 +343,11 @@ pub fn run_contraction(
         amount_nodes,
     );
 
+    // sort edges from top to down ranks for better performing bidijkstra
+
     // testing uniqueness of ids
-    // let unique_set: BTreeSet<usize> = edges.iter().cloned().map(|e| e.id.unwrap()).collect();
-    // assert_eq!(unique_set.len(), edges.len());
+    let unique_set: BTreeSet<usize> = edges.iter().cloned().map(|e| e.id.unwrap()).collect();
+    assert_eq!(unique_set.len(), edges.len());
 
     *edges = resulting_edges;
     // and calculate the offsets
