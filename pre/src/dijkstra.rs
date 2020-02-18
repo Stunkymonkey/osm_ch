@@ -13,7 +13,7 @@ pub struct Dijkstra {
     // if start node stays the same no recomputation/invalidation is needed
     start_node: NodeId,
     // to keep track if graph changes while contracting
-    prev_edge_len: usize,
+    prev_rank: usize,
 }
 
 impl Dijkstra {
@@ -27,7 +27,7 @@ impl Dijkstra {
             visited: visited,
             heap: heap,
             start_node: INVALID_NODE,
-            prev_edge_len: WEIGHT_MAX,
+            prev_rank: WEIGHT_MAX,
         }
     }
 
@@ -39,12 +39,13 @@ impl Dijkstra {
         offset: &Vec<EdgeId>,
         edges: &Vec<Way>,
         with_path: bool,
+        rank: usize,
     ) -> Option<(Vec<NodeId>, usize)> {
         if start == end {
             return Some((vec![], 0));
         }
-        if start != self.start_node || self.prev_edge_len != edges.len() {
-            self.prev_edge_len = edges.len();
+        if start != self.start_node || self.prev_rank != rank {
+            self.prev_rank = rank;
             self.heap.clear();
             self.visited.unvisit_all();
             self.heap.push(MinHeapItem::new(start, 0));
@@ -126,7 +127,7 @@ mod tests {
         let mut down_offset = Vec::<EdgeId>::new();
         offset::generate_offsets(&mut edges, &mut up_offset, &mut down_offset, amount_nodes);
         let mut d: Dijkstra = Dijkstra::new(amount_nodes);
-        let result = d.find_path(1, 0, &up_offset, &edges, true);
+        let result = d.find_path(1, 0, &up_offset, &edges, true, 0);
 
         assert!(result.is_none());
     }
@@ -154,7 +155,7 @@ mod tests {
         let mut down_offset = Vec::<EdgeId>::new();
         offset::generate_offsets(&mut edges, &mut up_offset, &mut down_offset, amount_nodes);
         let mut d: Dijkstra = Dijkstra::new(amount_nodes);
-        let result = d.find_path(0, 2, &up_offset, &edges, true);
+        let result = d.find_path(0, 2, &up_offset, &edges, true, 0);
 
         assert!(result.is_some());
         let path = result.unwrap();
@@ -188,7 +189,7 @@ mod tests {
         let mut down_offset = Vec::<EdgeId>::new();
         offset::generate_offsets(&mut edges, &mut up_offset, &mut down_offset, amount_nodes);
         let mut d: Dijkstra = Dijkstra::new(amount_nodes);
-        let result = d.find_path(0, 2, &up_offset, &edges, true);
+        let result = d.find_path(0, 2, &up_offset, &edges, true, 0);
 
         assert!(result.is_some());
         let path = result.unwrap();
@@ -211,10 +212,10 @@ mod tests {
         offset::generate_offsets(&mut edges, &mut up_offset, &mut down_offset, amount_nodes);
         let mut d: Dijkstra = Dijkstra::new(amount_nodes);
 
-        let result = d.find_path(3, 0, &up_offset, &edges, true);
+        let result = d.find_path(3, 0, &up_offset, &edges, true, 0);
         assert!(result.is_none());
 
-        let result = d.find_path(0, 3, &up_offset, &edges, true);
+        let result = d.find_path(0, 3, &up_offset, &edges, true, 0);
         assert!(result.is_some());
         let path = result.unwrap();
         assert_eq!(path.0, [0, 1, 2]);
@@ -235,13 +236,13 @@ mod tests {
         offset::generate_offsets(&mut edges, &mut up_offset, &mut down_offset, amount_nodes);
         let mut d: Dijkstra = Dijkstra::new(amount_nodes);
 
-        let result = d.find_path(0, 2, &up_offset, &edges, true);
+        let result = d.find_path(0, 2, &up_offset, &edges, true, 0);
         assert!(result.is_some());
         let path = result.unwrap();
         assert_eq!(path.0, [0, 1]);
         assert_eq!(path.1, 2);
 
-        let result = d.find_path(0, 2, &up_offset, &edges, true);
+        let result = d.find_path(0, 2, &up_offset, &edges, true, 0);
         assert!(result.is_some());
         let path = result.unwrap();
         assert_eq!(path.0, [0, 1]);
@@ -268,27 +269,28 @@ mod tests {
         offset::generate_offsets(&mut edges, &mut up_offset, &mut down_offset, amount_nodes);
         let mut d: Dijkstra = Dijkstra::new(amount_nodes);
 
-        let result = d.find_path(0, 2, &up_offset, &edges, true);
+        let result = d.find_path(0, 2, &up_offset, &edges, true, 0);
         assert!(result.is_some());
         let path = result.unwrap();
         assert_eq!(path.0, [1]);
         assert_eq!(path.1, 1);
 
-        let result = d.find_path(1, 2, &up_offset, &edges, true);
+        let result = d.find_path(1, 2, &up_offset, &edges, true, 0);
         assert!(result.is_some());
         let path = result.unwrap();
         assert_eq!(path.0, [3]);
         assert_eq!(path.1, 1);
 
         edges.remove(0);
+        offset::generate_offsets(&mut edges, &mut up_offset, &mut down_offset, amount_nodes);
 
-        let result = d.find_path(0, 2, &up_offset, &edges, true);
+        let result = d.find_path(0, 2, &up_offset, &edges, true, 1);
         assert!(result.is_some());
         let path = result.unwrap();
         assert_eq!(path.0, [0]);
         assert_eq!(path.1, 1);
 
-        let result = d.find_path(1, 2, &up_offset, &edges, true);
+        let result = d.find_path(1, 2, &up_offset, &edges, true, 1);
         assert!(result.is_some());
         let path = result.unwrap();
         assert_eq!(path.0, [2]);
@@ -324,29 +326,29 @@ mod tests {
         offset::generate_offsets(&mut edges, &mut up_offset, &mut down_offset, amount_nodes);
         let mut d: Dijkstra = Dijkstra::new(amount_nodes);
 
-        let result = d.find_path(4, 0, &up_offset, &edges, true);
+        let result = d.find_path(4, 0, &up_offset, &edges, true, 0);
         assert!(result.is_none());
 
-        let result = d.find_path(4, 4, &up_offset, &edges, true);
+        let result = d.find_path(4, 4, &up_offset, &edges, true, 0);
         assert!(result.is_some());
         let path = result.unwrap();
         assert_eq!(path.0.len(), 0);
         assert_eq!(path.0, []);
         assert_eq!(path.1, 0);
 
-        let result = d.find_path(6, 3, &up_offset, &edges, true);
+        let result = d.find_path(6, 3, &up_offset, &edges, true, 0);
         assert!(result.is_some());
         let path = result.unwrap();
         assert_eq!(path.0, [7]);
         assert_eq!(path.1, 20);
 
-        let result = d.find_path(1, 4, &up_offset, &edges, true);
+        let result = d.find_path(1, 4, &up_offset, &edges, true, 0);
         assert!(result.is_some());
         let path = result.unwrap();
         assert_eq!(path.0, [2, 3, 4]);
         assert_eq!(path.1, 22);
 
-        let result = d.find_path(0, 4, &up_offset, &edges, true);
+        let result = d.find_path(0, 4, &up_offset, &edges, true, 0);
         assert!(result.is_some());
         let path = result.unwrap();
         assert_eq!(path.0, [1, 6, 9, 10, 11]);
