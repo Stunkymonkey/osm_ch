@@ -10,6 +10,7 @@ pub fn calc_shortcuts(
     down_offset: &Vec<EdgeId>,
     down_index: &Vec<EdgeId>,
     shortcut_id: &AtomicUsize,
+    rank: usize,
 ) -> Vec<Way> {
     let mut shortcuts = Vec::<Way>::new();
     // get node neighbors
@@ -22,17 +23,24 @@ pub fn calc_shortcuts(
         for target_edge in &target_edges {
             let target_node = edges[*target_edge].target;
             let weight = edges[source_edge].weight + edges[*target_edge].weight;
-            // skip if start equal end (dijkstra should get rid of it anyway)
-            if source_node == target_node {
+            if weight < edges[source_edge].weight || weight < edges[*target_edge].weight {
+                panic!("overflow in weights! reduce DIST_MULTIPLICATOR");
+            }
+            // skip loops (dijkstra should get rid of it anyway)
+            if source_node == target_node || source_node == node || target_node == node {
                 continue;
             }
             let shortest_path =
-                dijkstra.find_path(source_node, target_node, up_offset, edges, false);
+                dijkstra.find_path(source_node, target_node, up_offset, edges, true, rank);
 
             // create new shortcut where found path is shortest
             if shortest_path.is_some() {
                 let shortest_path = shortest_path.unwrap();
-                if shortest_path.1 >= weight {
+                if shortest_path.1 == weight
+                    && shortest_path.0.len() == 2
+                    && shortest_path.0[0] == source_edge
+                    && shortest_path.0[1] == *target_edge
+                {
                     shortcuts.push(Way {
                         source: source_node,
                         target: target_node,
