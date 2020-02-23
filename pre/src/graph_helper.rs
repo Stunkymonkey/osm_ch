@@ -100,6 +100,8 @@ pub fn get_all_neighbours(
     let (targets, sources) = get_neighbours(node, edges, up_offset, down_offset, down_index);
     let mut neighbours = targets;
     neighbours.extend(&sources);
+    neighbours.par_sort_unstable();
+    neighbours.dedup();
     return neighbours;
 }
 
@@ -255,6 +257,6 @@ mod tests {
         assert_eq!(sources, [0, 2]);
 
         let neighbours = get_all_neighbours(1, &edges, &up_offset, &down_offset, &down_index);
-        assert_eq!(neighbours, [3, 4, 5, 0, 2]);
+        assert_eq!(neighbours, [0, 2, 3, 4, 5]);
     }
 }
