@@ -9,6 +9,7 @@ use visited_list::*;
 pub struct Dijkstra {
     dist: Vec<(NodeId, Option<Weight>)>,
     visited: VisitedList,
+    reachable: VisitedList,
     heap: BinaryHeap<MinHeapItem>,
     // if start node stays the same no recomputation/invalidation is needed
     start_node: NodeId,
@@ -19,18 +20,19 @@ pub struct Dijkstra {
 impl Dijkstra {
     /// general constructor
     pub fn new(amount_nodes: usize) -> Self {
-        let heap = BinaryHeap::new();
-        let visited = VisitedList::new(amount_nodes);
         let dist = vec![(WEIGHT_MAX, None); amount_nodes];
+        let visited = VisitedList::new(amount_nodes);
+        let reachable = VisitedList::new(amount_nodes);
+        let heap = BinaryHeap::new();
         Dijkstra {
             dist: dist,
             visited: visited,
+            reachable: reachable,
             heap: heap,
             start_node: INVALID_NODE,
             prev_rank: WEIGHT_MAX,
         }
     }
-
     /// return path of edges(!) from source to target not path of nodes!
     pub fn find_path(
         &mut self,
@@ -48,21 +50,18 @@ impl Dijkstra {
             self.prev_rank = rank;
             self.heap.clear();
             self.visited.unvisit_all();
+            self.reachable.unvisit_all();
             self.heap.push(MinHeapItem::new(start, 0));
         }
         if self.visited.is_visited(end) {
             return self.resolve_path(end, &edges, with_path);
         }
         self.dist[start] = (0, None);
+        self.reachable.set_visited(start);
         self.visited.set_visited(start);
         self.start_node = start;
 
         while let Some(MinHeapItem { node, weight }) = self.heap.pop() {
-            // found end
-            if node == end {
-                return self.resolve_path(end, &edges, with_path);
-            }
-
             // node has already been visited and can be skipped
             if self.visited.is_visited(node) && weight > self.dist[node].0 {
                 continue;
@@ -74,11 +73,16 @@ impl Dijkstra {
                 // calculate new costs
                 let next = MinHeapItem::new(current_way.target, weight + current_way.weight);
                 // add way to heap
-                if !self.visited.is_visited(next.node) || next.weight < self.dist[next.node].0 {
+                if !self.reachable.is_visited(next.node) || next.weight < self.dist[next.node].0 {
                     self.dist[next.node] = (next.weight, Some(edge));
-                    self.visited.set_visited(next.node);
                     self.heap.push(next);
+                    self.reachable.set_visited(next.node);
                 }
+            }
+            self.visited.set_visited(node);
+            // found end
+            if node == end {
+                return self.resolve_path(end, &edges, with_path);
             }
         }
         return None;
@@ -243,6 +247,24 @@ mod tests {
         assert_eq!(path.1, 2);
 
         let result = d.find_path(0, 2, &up_offset, &edges, true, 0);
+        assert!(result.is_some());
+        let path = result.unwrap();
+        assert_eq!(path.0, [0, 1]);
+        assert_eq!(path.1, 2);
+
+        let result = d.find_path(0, 1, &up_offset, &edges, true, 1);
+        assert!(result.is_some());
+        let path = result.unwrap();
+        assert_eq!(path.0, [0]);
+        assert_eq!(path.1, 1);
+
+        let result = d.find_path(0, 1, &up_offset, &edges, true, 1);
+        assert!(result.is_some());
+        let path = result.unwrap();
+        assert_eq!(path.0, [0]);
+        assert_eq!(path.1, 1);
+
+        let result = d.find_path(0, 2, &up_offset, &edges, true, 1);
         assert!(result.is_some());
         let path = result.unwrap();
         assert_eq!(path.0, [0, 1]);
