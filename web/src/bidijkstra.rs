@@ -73,7 +73,7 @@ impl Dijkstra {
                     let current_way: Way = edges[edge];
                     // skip nodes with lower rank
                     if nodes[current_way.target].rank <= nodes[node].rank {
-                        continue;
+                        break;
                     }
                     // calculate new costs
                     let next = MinHeapItem::new(current_way.target, weight + current_way.weight);
@@ -108,7 +108,7 @@ impl Dijkstra {
                     let current_way: Way = edges[edge];
                     // skip nodes with lower rank
                     if nodes[current_way.source].rank <= nodes[node].rank {
-                        continue;
+                        break;
                     }
                     // calculate new costs
                     let next = MinHeapItem::new(current_way.source, weight + current_way.weight);
