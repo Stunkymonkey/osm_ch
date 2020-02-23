@@ -30,13 +30,13 @@ pub fn generate_offsets_unstable(
     // first collect offsets
     let targets: Vec<EdgeId> = edges.par_iter().map(|x| x.target).rev().collect();
     fill_offset(targets, &mut down_offset);
-    let mut down_index = vec![INVALID_NODE; edges.len()];
+    let mut down_index = vec![INVALID_EDGE; edges.len()];
     // fill offsets, where not already filled
     for (i, edge) in edges.iter().enumerate() {
         let start_index = down_offset[edge.target];
         let end_index = down_offset[edge.target + 1];
         for j in start_index..end_index {
-            if down_index[j] == INVALID_NODE {
+            if down_index[j] == INVALID_EDGE {
                 down_index[j] = i;
                 break;
             }

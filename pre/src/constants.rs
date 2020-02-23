@@ -5,6 +5,7 @@ pub type Rank = usize;
 pub type GridId = usize;
 
 pub const INVALID_NODE: NodeId = std::usize::MAX;
+pub const INVALID_EDGE: NodeId = std::usize::MAX;
 pub const WEIGHT_MAX: Weight = std::usize::MAX;
 pub const INVALID_RANK: Rank = std::usize::MAX;
 
