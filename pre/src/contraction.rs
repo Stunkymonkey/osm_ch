@@ -160,47 +160,6 @@ fn revert_indices(edges: &mut Vec<Way>) {
     });
 }
 
-/// return new generated shortcuts
-pub fn contract_single_node(
-    node: NodeId,
-    mut edges: &mut Vec<Way>,
-    mut up_offset: &mut Vec<EdgeId>,
-    mut down_offset: &mut Vec<EdgeId>,
-    mut down_index: &mut Vec<EdgeId>,
-    mut dijkstra: &mut dijkstra::Dijkstra,
-    resulting_edges: &mut Vec<Way>,
-    amount_nodes: usize,
-    shortcut_id: &AtomicUsize,
-    rank: usize,
-) {
-    let shortcuts = calc_shortcuts(
-        node,
-        &mut dijkstra,
-        &mut edges,
-        &mut up_offset,
-        &mut down_offset,
-        &mut down_index,
-        &shortcut_id,
-        rank,
-    );
-
-    // get all connected edges of one node
-    let mut connected_edges =
-        graph_helper::get_all_edge_ids(node, &up_offset, &down_offset, &down_index);
-
-    // sort reverse for iterating from bottom up
-    connected_edges.sort_by_key(|&edge| Reverse(edge));
-    // all connected nodes are moved to remaining_nodes
-    for edge_id in connected_edges.iter() {
-        resulting_edges.push(edges.swap_remove(*edge_id));
-    }
-    // add new shortcuts
-    edges.par_extend(&shortcuts);
-    // recalc edge-indices
-    *down_index =
-        offset::generate_offsets(&mut edges, &mut up_offset, &mut down_offset, amount_nodes);
-}
-
 /// run full contraction
 pub fn run_contraction(
     nodes: &mut Vec<Node>,
@@ -400,6 +359,47 @@ pub fn run_contraction(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// return new generated shortcuts
+    pub fn contract_single_node(
+        node: NodeId,
+        mut edges: &mut Vec<Way>,
+        mut up_offset: &mut Vec<EdgeId>,
+        mut down_offset: &mut Vec<EdgeId>,
+        mut down_index: &mut Vec<EdgeId>,
+        mut dijkstra: &mut dijkstra::Dijkstra,
+        resulting_edges: &mut Vec<Way>,
+        amount_nodes: usize,
+        shortcut_id: &AtomicUsize,
+        rank: usize,
+    ) {
+        let shortcuts = calc_shortcuts(
+            node,
+            &mut dijkstra,
+            &mut edges,
+            &mut up_offset,
+            &mut down_offset,
+            &mut down_index,
+            &shortcut_id,
+            rank,
+        );
+
+        // get all connected edges of one node
+        let mut connected_edges =
+            graph_helper::get_all_edge_ids(node, &up_offset, &down_offset, &down_index);
+
+        // sort reverse for iterating from bottom up
+        connected_edges.sort_by_key(|&edge| Reverse(edge));
+        // all connected nodes are moved to remaining_nodes
+        for edge_id in connected_edges.iter() {
+            resulting_edges.push(edges.swap_remove(*edge_id));
+        }
+        // add new shortcuts
+        edges.par_extend(&shortcuts);
+        // recalc edge-indices
+        *down_index =
+            offset::generate_offsets(&mut edges, &mut up_offset, &mut down_offset, amount_nodes);
+    }
 
     #[test]
     fn calc_shortcuts_no_witness() {
