@@ -851,6 +851,158 @@ mod tests {
     }
 
     #[test]
+    fn remove_redundant_test() {
+        //   1
+        //  / \
+        // 0---2
+
+        let amount_nodes = 3;
+        let mut edges = Vec::<Way>::new();
+        edges.push(Way::test(0, 1, 13, 0));
+        edges.push(Way::test(0, 2, 26, 3));
+        edges.push(Way::shortcut(0, 2, 25, 0, 1, 2));
+        edges.push(Way::test(1, 2, 12, 1));
+
+        let mut up_offset = Vec::<EdgeId>::new();
+        let mut down_offset = Vec::<EdgeId>::new();
+        let mut down_index =
+            offset::generate_offsets(&mut edges, &mut up_offset, &mut down_offset, amount_nodes);
+
+        let mut expected_edges = Vec::<Way>::new();
+        expected_edges.push(Way::test(0, 1, 13, 0));
+        expected_edges.push(Way::shortcut(0, 2, 25, 0, 1, 2));
+        expected_edges.push(Way::test(1, 2, 12, 1));
+
+        remove_redundant_edges(
+            &mut edges,
+            &mut up_offset,
+            &mut down_offset,
+            &mut down_index,
+            amount_nodes,
+        );
+
+        assert_eq!(edges, expected_edges);
+    }
+
+    #[test]
+    fn sort_edges_ranked_test() {
+        //      7 -> 8 -> 9
+        //      |         |
+        // 0 -> 5 -> 6 -  |
+        // |         |  \ |
+        // 1 -> 2 -> 3 -> 4
+
+        let mut nodes = Vec::new();
+        nodes.push(Node {
+            latitude: 0.0,
+            longitude: 0.0,
+            rank: 1,
+        });
+        nodes.push(Node {
+            latitude: 0.0,
+            longitude: 0.0,
+            rank: 0,
+        });
+        nodes.push(Node {
+            latitude: 0.0,
+            longitude: 0.0,
+            rank: 2,
+        });
+        nodes.push(Node {
+            latitude: 0.0,
+            longitude: 0.0,
+            rank: 4,
+        });
+        nodes.push(Node {
+            latitude: 0.0,
+            longitude: 0.0,
+            rank: 5,
+        });
+        nodes.push(Node {
+            latitude: 0.0,
+            longitude: 0.0,
+            rank: 3,
+        });
+        nodes.push(Node {
+            latitude: 0.0,
+            longitude: 0.0,
+            rank: 9,
+        });
+        nodes.push(Node {
+            latitude: 0.0,
+            longitude: 0.0,
+            rank: 6,
+        });
+        nodes.push(Node {
+            latitude: 0.0,
+            longitude: 0.0,
+            rank: 8,
+        });
+        nodes.push(Node {
+            latitude: 0.0,
+            longitude: 0.0,
+            rank: 7,
+        });
+
+        let amount_nodes = nodes.len();
+        let mut edges = Vec::<Way>::new();
+        edges.push(Way::test(6, 4, 20, 8));
+        edges.push(Way::test(6, 3, 20, 7));
+        edges.push(Way::test(5, 6, 1, 9));
+        edges.push(Way::test(5, 7, 5, 6));
+        edges.push(Way::shortcut(5, 3, 21, 9, 7, 12));
+        edges.push(Way::test(0, 5, 5, 0));
+        edges.push(Way::test(3, 4, 20, 1));
+        edges.push(Way::test(2, 3, 1, 2));
+        edges.push(Way::test(8, 9, 1, 11));
+        edges.push(Way::test(7, 8, 1, 5));
+        edges.push(Way::test(1, 2, 1, 3));
+        edges.push(Way::test(0, 1, 1, 4));
+        edges.push(Way::shortcut(0, 7, 10, 0, 6, 13));
+        edges.push(Way::shortcut(0, 2, 2, 4, 3, 16));
+        edges.push(Way::test(9, 4, 1, 10));
+        edges.push(Way::shortcut(7, 9, 2, 5, 11, 15));
+        edges.push(Way::shortcut(7, 4, 3, 15, 10, 17));
+        edges.push(Way::shortcut(2, 4, 21, 2, 1, 14));
+
+        let mut up_offset = Vec::<EdgeId>::new();
+        let mut down_offset = Vec::<EdgeId>::new();
+        let mut down_index =
+            offset::generate_offsets(&mut edges, &mut up_offset, &mut down_offset, amount_nodes);
+
+        //check edges and down_index
+
+        let mut expected_edges = Vec::<Way>::new();
+
+        expected_edges.push(Way::shortcut(0, 7, 10, 0, 6, 13));
+        expected_edges.push(Way::test(0, 5, 5, 0));
+        expected_edges.push(Way::shortcut(0, 2, 2, 4, 3, 16));
+        expected_edges.push(Way::test(0, 1, 1, 4));
+        expected_edges.push(Way::test(1, 2, 1, 3));
+        expected_edges.push(Way::shortcut(2, 4, 21, 2, 1, 14));
+        expected_edges.push(Way::test(2, 3, 1, 2));
+        expected_edges.push(Way::test(3, 4, 20, 1));
+        expected_edges.push(Way::test(5, 6, 1, 9));
+        expected_edges.push(Way::test(5, 7, 5, 6));
+        expected_edges.push(Way::shortcut(5, 3, 21, 9, 7, 12));
+        expected_edges.push(Way::test(6, 4, 20, 8));
+        expected_edges.push(Way::test(6, 3, 20, 7));
+        expected_edges.push(Way::test(7, 8, 1, 5));
+        expected_edges.push(Way::shortcut(7, 9, 2, 5, 11, 15));
+        expected_edges.push(Way::shortcut(7, 4, 3, 15, 10, 17));
+        expected_edges.push(Way::test(8, 9, 1, 11));
+        expected_edges.push(Way::test(9, 4, 1, 10));
+
+        let expected_down_index =
+            vec![3, 2, 4, 12, 10, 6, 11, 17, 15, 7, 5, 1, 8, 9, 0, 13, 16, 14];
+
+        sort_edges_ranked(&mut edges, &down_offset, &mut down_index, &nodes);
+
+        assert_eq!(edges, expected_edges);
+        assert_eq!(down_index, expected_down_index);
+    }
+
+    #[test]
     fn revert_indices_test() {
         //      7 -> 8 -> 9
         //      |         |
@@ -905,40 +1057,6 @@ mod tests {
         expected_edges.push(Way::test(9, 4, 1, 10));
 
         revert_indices(&mut edges);
-
-        assert_eq!(edges, expected_edges);
-    }
-
-    #[test]
-    fn remove_redundant_test() {
-        //   1
-        //  / \
-        // 0---2
-
-        let amount_nodes = 3;
-        let mut edges = Vec::<Way>::new();
-        edges.push(Way::test(0, 1, 13, 0));
-        edges.push(Way::test(0, 2, 26, 3));
-        edges.push(Way::shortcut(0, 2, 25, 0, 1, 2));
-        edges.push(Way::test(1, 2, 12, 1));
-
-        let mut up_offset = Vec::<EdgeId>::new();
-        let mut down_offset = Vec::<EdgeId>::new();
-        let mut down_index =
-            offset::generate_offsets(&mut edges, &mut up_offset, &mut down_offset, amount_nodes);
-
-        let mut expected_edges = Vec::<Way>::new();
-        expected_edges.push(Way::test(0, 1, 13, 0));
-        expected_edges.push(Way::shortcut(0, 2, 25, 0, 1, 2));
-        expected_edges.push(Way::test(1, 2, 12, 1));
-
-        remove_redundant_edges(
-            &mut edges,
-            &mut up_offset,
-            &mut down_offset,
-            &mut down_index,
-            amount_nodes,
-        );
 
         assert_eq!(edges, expected_edges);
     }
