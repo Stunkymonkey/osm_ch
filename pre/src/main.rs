@@ -15,7 +15,7 @@ mod visited_list;
 use rayon::prelude::*;
 use std::collections::{BTreeSet, HashMap};
 use std::sync::atomic::{AtomicIsize, AtomicUsize, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, RwLock};
 use std::time::Instant;
 
 use crate::constants::*;
