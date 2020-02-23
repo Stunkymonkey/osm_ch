@@ -57,7 +57,7 @@ pub fn calc_shortcuts(
     return shortcuts;
 }
 
-pub fn remove_redundant_edges(
+fn remove_redundant_edges(
     mut edges: &mut Vec<Way>,
     mut up_offset: &mut Vec<EdgeId>,
     mut down_offset: &mut Vec<EdgeId>,
@@ -106,7 +106,40 @@ pub fn remove_redundant_edges(
         offset::generate_offsets(&mut edges, &mut up_offset, &mut down_offset, amount_nodes);
 }
 
-pub fn revert_indices(edges: &mut Vec<Way>) {
+fn sort_edges_ranked(
+    edges: &mut Vec<Way>,
+    down_offset: &Vec<EdgeId>,
+    down_index: &mut Vec<EdgeId>,
+    nodes: &Vec<Node>,
+) {
+    //sort by source then rank
+    edges.par_sort_by(|a, b| {
+        a.source
+            .cmp(&b.source)
+            .then(nodes[a.target].rank.cmp(&nodes[b.target].rank).reverse())
+    });
+
+    *down_index = vec![INVALID_EDGE; edges.len()];
+    // fill offsets, where not already filled
+    for (i, edge) in edges.iter().enumerate() {
+        let start_index = down_offset[edge.target];
+        let end_index = down_offset[edge.target + 1];
+        for j in start_index..end_index {
+            if down_index[j] == INVALID_EDGE {
+                down_index[j] = i;
+                break;
+            }
+        }
+    }
+
+    // sort down_index subvectors
+    for node in 0..nodes.len() {
+        let subvector = &mut down_index[down_offset[node]..down_offset[node + 1]];
+        subvector.sort_by_key(|edge_id| Reverse(nodes[edges[*edge_id].source].rank));
+    }
+}
+
+fn revert_indices(edges: &mut Vec<Way>) {
     let maximum_id = edges
         .par_iter()
         .map(|edge| edge.id)
@@ -305,8 +338,6 @@ pub fn run_contraction(
         let other_time = Instant::now();
         // sort in reverse order for removing from bottom up
         connected_edges.sort_by_key(|&edge| Reverse(edge));
-        // TODO needed?
-        connected_edges.dedup();
         // insert E into remaining graph
         for edge_id in connected_edges.iter() {
             resulting_edges.push(edges.swap_remove(*edge_id));
@@ -350,8 +381,6 @@ pub fn run_contraction(
         amount_nodes,
     );
 
-    // sort edges from top to down ranks for better performing bidijkstra
-
     // testing uniqueness of ids
     let unique_set: BTreeSet<usize> = edges.iter().cloned().map(|e| e.id.unwrap()).collect();
     assert_eq!(unique_set.len(), edges.len());
@@ -360,6 +389,9 @@ pub fn run_contraction(
     // and calculate the offsets
     *down_index =
         offset::generate_offsets(&mut edges, &mut up_offset, &mut down_offset, amount_nodes);
+
+    // sort edges from top to down ranks for better performing bidijkstra
+    sort_edges_ranked(&mut edges, &down_offset, &mut down_index, &nodes);
 
     // revert the ids back to usual ids
     revert_indices(&mut edges);
