@@ -13,7 +13,7 @@ mod structs;
 mod visited_list;
 
 use rayon::prelude::*;
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::sync::atomic::{AtomicIsize, AtomicUsize, Ordering};
 use std::sync::{Arc, RwLock};
 use std::time::Instant;

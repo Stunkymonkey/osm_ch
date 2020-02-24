@@ -18,39 +18,57 @@ pub fn calc_shortcuts(
         graph_helper::get_down_edge_ids(node, &down_offset, &down_index);
     let target_edges: Vec<EdgeId> = graph_helper::get_up_edge_ids(node, &up_offset);
 
-    for source_edge in source_edges {
-        let source_node = edges[source_edge].source;
+    //get minimum costs of one pair
+    let mut minimum_neighbor_distances: BTreeMap<(NodeId, NodeId), (Weight, (EdgeId, EdgeId))> =
+        BTreeMap::new();
+    for source_edge in &source_edges {
+        let source_node = edges[*source_edge].source;
         for target_edge in &target_edges {
             let target_node = edges[*target_edge].target;
-            let weight = edges[source_edge].weight + edges[*target_edge].weight;
-            if weight < edges[source_edge].weight || weight < edges[*target_edge].weight {
+            let weight = edges[*source_edge].weight + edges[*target_edge].weight;
+            if weight < edges[*source_edge].weight || weight < edges[*target_edge].weight {
                 panic!("overflow in weights! reduce DIST_MULTIPLICATOR");
             }
             // skip loops (dijkstra should get rid of it anyway)
             if source_node == target_node || source_node == node || target_node == node {
                 continue;
             }
-            let shortest_path =
-                dijkstra.find_path(source_node, target_node, up_offset, edges, true, rank);
-
-            // create new shortcut where found path is shortest
-            if shortest_path.is_some() {
-                let shortest_path = shortest_path.unwrap();
-                if shortest_path.1 == weight
-                    && shortest_path.0.len() == 2
-                    && shortest_path.0[0] == source_edge
-                    && shortest_path.0[1] == *target_edge
-                {
-                    shortcuts.push(Way {
-                        source: source_node,
-                        target: target_node,
-                        weight: weight,
-                        id: Some(shortcut_id.fetch_add(1, Ordering::SeqCst)),
-                        // do not use edge.index, because it will change during contraction
-                        contrated_previous: Some(edges[source_edge].id.unwrap()),
-                        contrated_next: Some(edges[*target_edge].id.unwrap()),
-                    });
+            let pair = (source_node, target_node);
+            let lower_edges = (*source_edge, *target_edge);
+            if let Some(old_minima) = minimum_neighbor_distances.get_mut(&pair) {
+                if (*old_minima).0 > weight {
+                    *old_minima = (weight, lower_edges);
                 }
+            } else {
+                minimum_neighbor_distances.insert(pair, (weight, lower_edges));
+            }
+        }
+    }
+
+    // iterate over pairs and generate shortcuts
+    for neighbors in minimum_neighbor_distances {
+        let source_node = (neighbors.0).0;
+        let target_node = (neighbors.0).1;
+        let weight = (neighbors.1).0;
+        let source_edge = ((neighbors.1).1).0;
+        let target_edge = ((neighbors.1).1).1;
+
+        let shortest_path =
+            dijkstra.find_path(source_node, target_node, up_offset, edges, false, rank);
+
+        // create new shortcut where found path is shortest
+        if shortest_path.is_some() {
+            let shortest_path = shortest_path.unwrap();
+            if shortest_path.1 >= weight {
+                shortcuts.push(Way {
+                    source: source_node,
+                    target: target_node,
+                    weight: weight,
+                    id: Some(shortcut_id.fetch_add(1, Ordering::SeqCst)),
+                    // do not use edge.index, because it will change during contraction
+                    contrated_previous: Some(edges[source_edge].id.unwrap()),
+                    contrated_next: Some(edges[target_edge].id.unwrap()),
+                });
             }
         }
     }
@@ -253,6 +271,9 @@ pub fn run_contraction(
         if remaining_nodes.len() > 1_000 {
             println!("shortcuts time in: {:?}", shortcuts_time.elapsed());
         }
+
+        // dedup shortcuts with same start, end and weight
+        // shortcuts.dedup_by(|a, b| a.source.eq(&b.source) && a.target.eq(&b.target));
 
         let update_heuristic_time = Instant::now();
         // update heuristic of neighbors of I with simulated contractions
