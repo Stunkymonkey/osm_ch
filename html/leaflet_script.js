@@ -1,7 +1,7 @@
 var map = L.map('map', {
     maxBounds: [
-        [47.3, 5.9], // Southwest coordinates
-        [54.9, 16.9512215] // Northeast coordinates
+        [47.1, 5.7], // Southwest coordinates
+        [55.2, 16.9] // Northeast coordinates
     ],
 }).setView([51.1657, 10.4515], 6);
 L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
