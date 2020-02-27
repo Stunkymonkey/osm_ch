@@ -1,11 +1,11 @@
-# OSM-Dijkstra
+# OSM-Contraction-Hierarchies
 by Felix Bühler
 
 This project was part of "Lab Course: Algorithms for OSM Data".
 
-This project implements "Contraction Hierarchies". It is one of the best known speed-up techniques for shortest path calculations. As data source [OpenStreetMap](https://www.openstreetmap.org)-data is used.
+This project implements "Contraction Hierarchies". Which is one of the best known speed-up techniques for shortest path calculations. As data source [OpenStreetMap](https://www.openstreetmap.org)-data is used.
 
-![screenshot](./screenshot-osm_dijkstra.png)
+![screenshot](./screenshot-osm_ch.png)
 
 This repository consists of two programms:
 
@@ -22,10 +22,10 @@ Cropped OSM-data can be downloaded from [Geofabrik.de](https://download.geofabri
 - `bincode` = exporting serialization
 
 ### Compilation
-`cargo build --release -p osm_dijkstra_pre`
+`cargo build --release -p osm_ch_pre`
 
 ### Usage
-`cargo run --release -p osm_dijkstra_pre ./germany-latest.osm.pbf`
+`cargo run --release -p osm_ch_pre ./germany-latest.osm.pbf`
 
 ## web
 
@@ -44,8 +44,8 @@ is the webserver which provides the web-interface. (it needs the `*.osm.pbf.fmi`
 
 ### Compilation
 
-`cargo build --release -p osm_dijkstra_web`
+`cargo build --release -p osm_ch_web`
 
 ### Usage
 
-`cargo run --release -p osm_dijkstra_web ./germany-latest.osm.pbf.fmi`
+`cargo run --release -p osm_ch_web ./germany-latest.osm.pbf.`

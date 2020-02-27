@@ -1,5 +1,5 @@
 [package]
-name = "osm_dijkstra_web"
+name = "osm_ch_web"
 version = "1.0.0"
 authors = [ "Felix Buehler <account@buehler.rocks>" ]
 edition = "2018"
