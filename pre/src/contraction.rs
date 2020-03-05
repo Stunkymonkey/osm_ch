@@ -242,7 +242,7 @@ pub fn run_contraction(
 
         let shortcuts_time = Instant::now();
         // E ← necessary shortcuts
-        let shortcuts: Vec<Way> = minimas
+        let mut shortcuts: Vec<Way> = minimas
             .par_iter()
             .map_init(
                 || dijkstra.clone(),
@@ -276,10 +276,18 @@ pub fn run_contraction(
         }
 
         // dedup shortcuts with same start, end but have to keep with best weight
-
-        // shortcuts.par_sort_unstable();
-        // TODO keep with best weight
-        // shortcuts.dedup_by(|a, b| a.source.eq(&b.source) && a.target.eq(&b.target));
+        shortcuts.par_sort_unstable();
+        shortcuts = shortcuts
+            .iter()
+            .zip(shortcuts.iter().skip(1))
+            .filter_map(|(&a, &b)| {
+                if a.source == b.source && a.target == b.target && a.weight <= b.weight {
+                    None
+                } else {
+                    Some(a)
+                }
+            })
+            .collect();
 
         let update_heuristic_time = Instant::now();
         // update heuristic of neighbors of I with simulated contractions
@@ -323,7 +331,7 @@ pub fn run_contraction(
 
         let other_time = Instant::now();
         // sort in reverse order for removing from bottom up
-        connected_edges.sort_by_key(|&edge| Reverse(edge));
+        connected_edges.par_sort_by_key(|&edge| Reverse(edge));
         // insert E into remaining graph
         for edge_id in connected_edges.iter() {
             resulting_edges.push(edges.swap_remove(*edge_id));
