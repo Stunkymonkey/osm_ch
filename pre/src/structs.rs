@@ -56,6 +56,7 @@ impl Ord for Way {
             .source
             .cmp(&other.source)
             .then(self.target.cmp(&other.target))
+            .then(self.weight.cmp(&other.weight))
             .then(self.contrated_previous.cmp(&other.contrated_previous))
             .then(self.contrated_next.cmp(&other.contrated_next));
     }

@@ -277,17 +277,7 @@ pub fn run_contraction(
 
         // dedup shortcuts with same start, end but have to keep with best weight
         shortcuts.par_sort_unstable();
-        shortcuts = shortcuts
-            .iter()
-            .zip(shortcuts.iter().skip(1))
-            .filter_map(|(&a, &b)| {
-                if a.source == b.source && a.target == b.target && a.weight <= b.weight {
-                    None
-                } else {
-                    Some(a)
-                }
-            })
-            .collect();
+        shortcuts.dedup_by(|a, b| a.source == b.source && a.target == b.target);
 
         let update_heuristic_time = Instant::now();
         // update heuristic of neighbors of I with simulated contractions
