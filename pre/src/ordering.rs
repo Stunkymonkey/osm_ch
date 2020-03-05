@@ -74,7 +74,6 @@ pub fn calculate_heuristics(
                     *node,
                     &mut dijkstra,
                     &deleted_neighbors,
-                    Arc::clone(&pre_calc_shortcuts),
                     &shortcut_id,
                     &edges,
                     &up_offset,

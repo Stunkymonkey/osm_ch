@@ -23,7 +23,7 @@ use crate::structs::*;
 use crate::visited_list::*;
 
 // Options: Car, Bicycle, Pedestrian, All
-const TRAVEL_TYPE: TravelType = TravelType::All;
+const TRAVEL_TYPE: TravelType = TravelType::Car;
 // Options: Time, Distance
 const OPTIMIZE_BY: OptimizeBy = OptimizeBy::Time;
 
