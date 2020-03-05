@@ -202,7 +202,6 @@ pub fn run_contraction(
     for node_id in 0..amount_nodes {
         remaining_nodes.insert(node_id);
     }
-    // let mut remaining_nodes: Vec<NodeId> = (0..nodes.len()).map(usize::from).collect();
 
     let mut dijkstra = dijkstra::Dijkstra::new(amount_nodes);
     let mut rank: Rank = 0;
@@ -212,7 +211,7 @@ pub fn run_contraction(
     let mut deleted_neighbors = vec![0; amount_nodes];
     let mut heuristics = ordering::calculate_heuristics(
         &remaining_nodes,
-        &dijkstra,
+        &mut dijkstra,
         &deleted_neighbors,
         &shortcut_id,
         &edges,
@@ -234,7 +233,7 @@ pub fn run_contraction(
             &down_offset,
             &down_index,
         );
-        if remaining_nodes.len() > 1_000 {
+        if remaining_nodes.len() > 10_000 {
             println!(
                 "get_independent_set time in: {:?}",
                 get_independent_set_time.elapsed()
@@ -245,21 +244,25 @@ pub fn run_contraction(
         // E ← necessary shortcuts
         let shortcuts: Vec<Way> = minimas
             .par_iter()
-            .map_with(dijkstra.clone(), |mut dijkstra, node| {
-                calc_shortcuts(
-                    *node,
-                    &mut dijkstra,
-                    &edges,
-                    &up_offset,
-                    &down_offset,
-                    &down_index,
-                    &shortcut_id,
-                    rank,
-                )
-            })
+            .map_init(
+                || dijkstra.clone(),
+                |mut dijkstra, node| {
+                    calc_shortcuts(
+                        *node,
+                        &mut dijkstra,
+                        &edges,
+                        &up_offset,
+                        &down_offset,
+                        &down_index,
+                        &shortcut_id,
+                        rank,
+                    )
+                },
+            )
             .flatten()
             .collect();
 
+        // collecting all edges to be removed
         let mut connected_edges: Vec<EdgeId> = minimas
             .par_iter()
             .map(|node| {
@@ -268,11 +271,14 @@ pub fn run_contraction(
             .flatten()
             .collect();
 
-        if remaining_nodes.len() > 1_000 {
+        if remaining_nodes.len() > 10_000 {
             println!("shortcuts time in: {:?}", shortcuts_time.elapsed());
         }
 
-        // dedup shortcuts with same start, end and weight
+        // dedup shortcuts with same start, end but have to keep with best weight
+
+        // shortcuts.par_sort_unstable();
+        // TODO keep with best weight
         // shortcuts.dedup_by(|a, b| a.source.eq(&b.source) && a.target.eq(&b.target));
 
         let update_heuristic_time = Instant::now();
@@ -308,7 +314,7 @@ pub fn run_contraction(
             rank,
         );
 
-        if remaining_nodes.len() > 1_000 {
+        if remaining_nodes.len() > 10_000 {
             println!(
                 "update_heuristic time in: {:?}",
                 update_heuristic_time.elapsed()
@@ -336,7 +342,7 @@ pub fn run_contraction(
             remaining_nodes.remove(&node);
         }
         rank += 1;
-        if remaining_nodes.len() > 1_000 {
+        if remaining_nodes.len() > 10_000 {
             println!("rest time in: {:?}", other_time.elapsed());
         }
 

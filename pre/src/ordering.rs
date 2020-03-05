@@ -56,7 +56,7 @@ pub fn calculate_single_heuristic(
 /// calculate heuristic in parallel
 pub fn calculate_heuristics(
     remaining_nodes: &BTreeSet<NodeId>,
-    dijkstra: &dijkstra::Dijkstra,
+    dijkstra: &mut dijkstra::Dijkstra,
     deleted_neighbors: &Vec<Weight>,
     shortcut_id: &AtomicUsize,
     edges: &Vec<Way>,
@@ -67,19 +67,23 @@ pub fn calculate_heuristics(
 ) -> Vec<AtomicIsize> {
     return remaining_nodes
         .par_iter()
-        .map_with(dijkstra.clone(), |mut dijkstra, node| {
-            AtomicIsize::new(calculate_single_heuristic(
-                *node,
-                &mut dijkstra,
-                &deleted_neighbors,
-                &shortcut_id,
-                &edges,
-                &up_offset,
-                &down_offset,
-                &down_index,
-                rank,
-            ))
-        })
+        .map_init(
+            || dijkstra.clone(),
+            |mut dijkstra, node| {
+                AtomicIsize::new(calculate_single_heuristic(
+                    *node,
+                    &mut dijkstra,
+                    &deleted_neighbors,
+                    Arc::clone(&pre_calc_shortcuts),
+                    &shortcut_id,
+                    &edges,
+                    &up_offset,
+                    &down_offset,
+                    &down_index,
+                    rank,
+                ))
+            },
+        )
         .collect();
 }
 
@@ -96,9 +100,9 @@ pub fn update_neighbor_heuristics(
     down_index: &Vec<EdgeId>,
     rank: usize,
 ) {
-    neighbors
-        .par_iter()
-        .for_each_with(dijkstra.clone(), |mut dijkstra, neighbor| {
+    neighbors.par_iter().for_each_init(
+        || dijkstra.clone(),
+        |mut dijkstra, neighbor| {
             let new_value = calculate_single_heuristic(
                 *neighbor,
                 &mut dijkstra,
@@ -111,7 +115,8 @@ pub fn update_neighbor_heuristics(
                 rank,
             );
             heuristics[*neighbor as usize].store(new_value, Ordering::Relaxed);
-        });
+        },
+    );
 }
 
 /// get independent set of graph using heuristic
