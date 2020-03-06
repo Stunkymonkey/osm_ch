@@ -55,67 +55,90 @@ pub fn calculate_single_heuristic(
 
 /// calculate heuristic in parallel
 pub fn calculate_heuristics(
-    remaining_nodes: &BTreeSet<NodeId>,
-    dijkstra: &mut dijkstra::Dijkstra,
     deleted_neighbors: &Vec<Weight>,
     shortcut_id: &AtomicUsize,
+    rank: usize,
+    amount_nodes: usize,
     edges: &Vec<Way>,
     up_offset: &Vec<EdgeId>,
     down_offset: &Vec<EdgeId>,
     down_index: &Vec<EdgeId>,
-    rank: usize,
 ) -> Vec<AtomicIsize> {
-    return remaining_nodes
-        .par_iter()
-        .map_init(
-            || dijkstra.clone(),
-            |mut dijkstra, node| {
-                AtomicIsize::new(calculate_single_heuristic(
-                    *node,
-                    &mut dijkstra,
-                    &deleted_neighbors,
-                    &shortcut_id,
-                    &edges,
-                    &up_offset,
-                    &down_offset,
-                    &down_index,
-                    rank,
-                ))
-            },
-        )
-        .collect();
+    let mut heuristics: Vec<AtomicIsize> = Vec::with_capacity(amount_nodes);
+    for _i in 0..amount_nodes {
+        heuristics.push(AtomicIsize::new(0));
+    }
+
+    let mut nodes: Vec<NodeId> = (0..amount_nodes).into_iter().collect();
+
+    let thread_count = num_cpus::get();
+    let chunk_size = (amount_nodes + thread_count - 1) / thread_count;
+
+    if chunk_size > 0 {
+        rayon::scope(|s| {
+            for datachunk_items in nodes.chunks_mut(chunk_size) {
+                s.spawn(|_| {
+                    let mut dijkstra = dijkstra::Dijkstra::new(amount_nodes);
+                    for node in datachunk_items {
+                        let new_value = calculate_single_heuristic(
+                            *node,
+                            &mut dijkstra,
+                            &deleted_neighbors,
+                            &shortcut_id,
+                            &edges,
+                            &up_offset,
+                            &down_offset,
+                            &down_index,
+                            rank,
+                        );
+                        heuristics[*node as usize].store(new_value, Ordering::Relaxed);
+                    }
+                });
+            }
+        });
+    }
+    return heuristics;
 }
 
 /// update all direct neighbors
 pub fn update_neighbor_heuristics(
-    neighbors: Vec<NodeId>,
+    mut neighbors: Vec<NodeId>,
     heuristics: &mut Vec<AtomicIsize>,
-    dijkstra: &mut dijkstra::Dijkstra,
     deleted_neighbors: &Vec<Weight>,
     shortcut_id: &AtomicUsize,
+    rank: usize,
+    amount_nodes: usize,
     edges: &Vec<Way>,
     up_offset: &Vec<EdgeId>,
     down_offset: &Vec<EdgeId>,
     down_index: &Vec<EdgeId>,
-    rank: usize,
 ) {
-    neighbors.par_iter().for_each_init(
-        || dijkstra.clone(),
-        |mut dijkstra, neighbor| {
-            let new_value = calculate_single_heuristic(
-                *neighbor,
-                &mut dijkstra,
-                &deleted_neighbors,
-                &shortcut_id,
-                &edges,
-                &up_offset,
-                &down_offset,
-                &down_index,
-                rank,
-            );
-            heuristics[*neighbor as usize].store(new_value, Ordering::Relaxed);
-        },
-    );
+    let thread_count = num_cpus::get();
+    let chunk_size = (neighbors.len() + thread_count - 1) / thread_count;
+
+    if chunk_size > 0 {
+        rayon::scope(|s| {
+            for datachunk_items in neighbors.chunks_mut(chunk_size) {
+                s.spawn(|_| {
+                    let mut dijkstra = dijkstra::Dijkstra::new(amount_nodes);
+                    for neighbor in datachunk_items {
+                        let new_value = calculate_single_heuristic(
+                            *neighbor,
+                            &mut dijkstra,
+                            &deleted_neighbors,
+                            &shortcut_id,
+                            &edges,
+                            &up_offset,
+                            &down_offset,
+                            &down_index,
+                            rank,
+                        );
+                        heuristics[*neighbor as usize].store(new_value, Ordering::Relaxed);
+                    }
+                });
+            }
+        });
+    }
 }
 
 /// get independent set of graph using heuristic

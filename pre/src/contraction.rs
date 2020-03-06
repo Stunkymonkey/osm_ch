@@ -203,28 +203,28 @@ pub fn run_contraction(
         remaining_nodes.insert(node_id);
     }
 
-    let mut dijkstra = dijkstra::Dijkstra::new(amount_nodes);
     let mut rank: Rank = 0;
     let mut minimas_bool = VisitedList::new(amount_nodes);
 
     // update priorities of all nodes with simulated contractions
     let mut deleted_neighbors = vec![0; amount_nodes];
     let mut heuristics = ordering::calculate_heuristics(
-        &remaining_nodes,
-        &mut dijkstra,
         &deleted_neighbors,
         &shortcut_id,
+        rank,
+        amount_nodes,
         &edges,
         &up_offset,
         &down_offset,
         &down_index,
-        rank,
     );
+
+    let thread_count = num_cpus::get();
 
     while !remaining_nodes.is_empty() {
         let get_independent_set_time = Instant::now();
         // I ← independent node set
-        let minimas = ordering::get_independent_set(
+        let mut minimas = ordering::get_independent_set(
             &remaining_nodes,
             &heuristics,
             &mut minimas_bool,
@@ -233,7 +233,7 @@ pub fn run_contraction(
             &down_offset,
             &down_index,
         );
-        if remaining_nodes.len() > 10_000 {
+        if remaining_nodes.len() > 100_000 {
             println!(
                 "get_independent_set time in: {:?}",
                 get_independent_set_time.elapsed()
@@ -242,25 +242,34 @@ pub fn run_contraction(
 
         let shortcuts_time = Instant::now();
         // E ← necessary shortcuts
-        let mut shortcuts: Vec<Way> = minimas
-            .par_iter()
-            .map_init(
-                || dijkstra.clone(),
-                |mut dijkstra, node| {
-                    calc_shortcuts(
-                        *node,
-                        &mut dijkstra,
-                        &edges,
-                        &up_offset,
-                        &down_offset,
-                        &down_index,
-                        &shortcut_id,
-                        rank,
-                    )
-                },
-            )
-            .flatten()
-            .collect();
+        let parallel_shortcuts: RwLock<Vec<Way>> =
+            RwLock::new(Vec::with_capacity(2 * minimas.len()));
+
+        let chunk_size = (minimas.len() + thread_count - 1) / thread_count;
+        if chunk_size > 0 {
+            rayon::scope(|s| {
+                for datachunk_items in minimas.chunks_mut(chunk_size) {
+                    s.spawn(|_| {
+                        let mut dijkstra = dijkstra::Dijkstra::new(amount_nodes);
+                        for node in datachunk_items {
+                            let node_shortcuts = calc_shortcuts(
+                                *node,
+                                &mut dijkstra,
+                                &edges,
+                                &up_offset,
+                                &down_offset,
+                                &down_index,
+                                &shortcut_id,
+                                rank,
+                            );
+                            let mut tmp = parallel_shortcuts.write().unwrap();
+                            tmp.extend(node_shortcuts);
+                        }
+                    });
+                }
+            });
+        }
+        let mut shortcuts = parallel_shortcuts.into_inner().unwrap();
 
         // collecting all edges to be removed
         let mut connected_edges: Vec<EdgeId> = minimas
@@ -271,7 +280,7 @@ pub fn run_contraction(
             .flatten()
             .collect();
 
-        if remaining_nodes.len() > 10_000 {
+        if remaining_nodes.len() > 100_000 {
             println!("shortcuts time in: {:?}", shortcuts_time.elapsed());
         }
 
@@ -302,17 +311,17 @@ pub fn run_contraction(
         ordering::update_neighbor_heuristics(
             neighbors,
             &mut heuristics,
-            &mut dijkstra,
             &deleted_neighbors,
             &shortcut_id,
+            rank,
+            amount_nodes,
             &edges,
             &up_offset,
             &down_offset,
             &down_index,
-            rank,
         );
 
-        if remaining_nodes.len() > 10_000 {
+        if remaining_nodes.len() > 100_000 {
             println!(
                 "update_heuristic time in: {:?}",
                 update_heuristic_time.elapsed()
@@ -340,7 +349,7 @@ pub fn run_contraction(
             remaining_nodes.remove(&node);
         }
         rank += 1;
-        if remaining_nodes.len() > 10_000 {
+        if remaining_nodes.len() > 100_000 {
             println!("rest time in: {:?}", other_time.elapsed());
         }
 

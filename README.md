@@ -16,10 +16,12 @@ Cropped OSM-data can be downloaded from [Geofabrik.de](https://download.geofabri
 
 ### dependecies
 
-- `osmpbfreader` = parsing the pbf file
-- `serde` = serialization
-- `rayon` = parallelization
 - `bincode` = exporting serialization
+- `num_cpus` = get number of threads
+- `osmpbfreader` = parsing the pbf file
+- `rayon` = parallelization
+- `serde` = serialization
+
 
 ### Compilation
 `cargo build --release -p osm_ch_pre`
