@@ -12,7 +12,7 @@ include = [
 
 [dependencies]
 actix-files = "0.2"
-actix-rt = "1.0"
+actix-rt = "1.1"
 actix-web = "2.0"
 bincode = "1.2"
 env_logger = "0.7"
