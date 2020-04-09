@@ -90,17 +90,17 @@ fn remove_redundant_edges(
         .filter_map(|(i, (&x, &y))| {
             if x.source == y.source
                 && x.target == y.target
-                && x.weight >= y.weight
-                && x.contrated_previous.is_none()
+                && x.weight <= y.weight
+                && y.contrated_previous.is_none()
             {
-                return Some(i);
+                return Some(i + 1);
             } else {
                 return None;
             }
         })
         .collect();
 
-    // check if ids is used in shortcuts
+    // check if ids is used in any shortcut
     let mut contraction_ids = BTreeSet::new();
     for edge in edges.into_iter() {
         contraction_ids.insert(edge.contrated_previous);
@@ -240,7 +240,7 @@ pub fn run_contraction(
             );
         }
 
-        let shortcuts_time = Instant::now();
+        let other_time = Instant::now();
         // E ← necessary shortcuts
         let parallel_shortcuts: RwLock<Vec<Way>> =
             RwLock::new(Vec::with_capacity(2 * minimas.len()));
@@ -280,15 +280,10 @@ pub fn run_contraction(
             .flatten()
             .collect();
 
-        if remaining_nodes.len() > 100_000 {
-            println!("shortcuts time in: {:?}", shortcuts_time.elapsed());
-        }
-
-        // dedup shortcuts with same start, end but have to keep with best weight
+        // dedup shortcuts with same start, end but have to keep with best weight preventing shortcuts in diamond-shapes
         shortcuts.par_sort_unstable();
         shortcuts.dedup_by(|a, b| a.source == b.source && a.target == b.target);
 
-        let update_heuristic_time = Instant::now();
         // update heuristic of neighbors of I with simulated contractions
         let mut neighbors: Vec<NodeId> = minimas
             .par_iter()
@@ -321,14 +316,6 @@ pub fn run_contraction(
             &down_index,
         );
 
-        if remaining_nodes.len() > 100_000 {
-            println!(
-                "update_heuristic time in: {:?}",
-                update_heuristic_time.elapsed()
-            );
-        }
-
-        let other_time = Instant::now();
         // sort in reverse order for removing from bottom up
         connected_edges.par_sort_by_key(|&edge| Reverse(edge));
         // insert E into remaining graph
@@ -383,7 +370,7 @@ pub fn run_contraction(
     *down_index =
         offset::generate_offsets(&mut edges, &mut up_offset, &mut down_offset, amount_nodes);
 
-    // sort edges from top to down ranks for better performing bidijkstra
+    // sort edges from top to down ranks for bidijkstra
     sort_edges_ranked(&mut edges, &down_offset, &mut down_index, &nodes);
 
     // revert the ids back to usual ids
@@ -748,8 +735,8 @@ mod tests {
 
         expected_edges.push(Way::test(1, 3, 1, 3));
         expected_edges.push(Way::shortcut(1, 4, 2, 2, 1, 10));
-        expected_edges.push(Way::test(2, 4, 3, 5));
         expected_edges.push(Way::shortcut(2, 4, 2, 4, 1, 11));
+        expected_edges.push(Way::test(2, 4, 3, 5));
         expected_edges.push(Way::test(3, 1, 1, 6));
         expected_edges.push(Way::test(3, 4, 4, 7));
         expected_edges.push(Way::test(4, 3, 1, 9));
@@ -893,8 +880,8 @@ mod tests {
         let amount_nodes = 3;
         let mut edges = Vec::<Way>::new();
         edges.push(Way::test(0, 1, 13, 0));
-        edges.push(Way::test(0, 2, 26, 3));
         edges.push(Way::shortcut(0, 2, 25, 0, 1, 2));
+        edges.push(Way::test(0, 2, 26, 3));
         edges.push(Way::test(1, 2, 12, 1));
 
         let mut up_offset = Vec::<EdgeId>::new();
@@ -914,6 +901,13 @@ mod tests {
             &mut down_index,
             amount_nodes,
         );
+
+        for (i, way) in edges.iter().enumerate() {
+            println!("{:?} {:?}", i, way);
+        }
+        for (i, way) in expected_edges.iter().enumerate() {
+            println!("{:?} {:?}", i, way);
+        }
 
         assert_eq!(edges, expected_edges);
     }
