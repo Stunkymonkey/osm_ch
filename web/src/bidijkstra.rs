@@ -245,7 +245,7 @@ impl Dijkstra {
         for edge in graph_helper::get_down_edge_ids(node, &down_offset, &down_index) {
             let way: Way = edges[edge];
             if nodes[way.source].rank > nodes[node].rank
-                && self.visited_up.is_visited(node)
+                && self.visited_up.is_visited(way.source)
                 && way.weight + self.dist_up[way.source].0 <= weight
             {
                 return true;
@@ -265,7 +265,7 @@ impl Dijkstra {
         for edge in graph_helper::get_up_edge_ids(node, &up_offset) {
             let way: Way = edges[edge];
             if nodes[way.target].rank > nodes[node].rank
-                && self.visited_down.is_visited(node)
+                && self.visited_down.is_visited(way.target)
                 && way.weight + self.dist_down[way.target].0 <= weight
             {
                 return true;
