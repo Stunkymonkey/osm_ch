@@ -54,13 +54,8 @@ async fn shortest_path(
     let mut dijkstra = dijkstra_cell.borrow_mut();
 
     let dijkstra_time = Instant::now();
-    let tmp = dijkstra.find_path(start_id, end_id, &data.nodes, &data.edges, &data.up_offset, &data.down_offset, &data.down_index, false);
+    let tmp = dijkstra.find_path(start_id, end_id, &data.nodes, &data.edges, &data.up_offset, &data.down_offset, &data.down_index);
     info!("    Dijkstra in: {:?}", dijkstra_time.elapsed());
-
-    let stalling_time = Instant::now();
-    let stalling = dijkstra.find_path(start_id, end_id, &data.nodes, &data.edges, &data.up_offset, &data.down_offset, &data.down_index, true);
-    info!("    Stalling in: {:?}", stalling_time.elapsed());
-    info!("    equal paths: {:?}", tmp == stalling);
 
     let result: Vec<(f32, f32)>;
     let mut cost: String = "".to_string();

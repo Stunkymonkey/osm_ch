@@ -36,7 +36,6 @@ impl Dijkstra {
         up_offset: &Vec<EdgeId>,
         down_offset: &Vec<EdgeId>,
         down_index: &Vec<EdgeId>,
-        use_stalling: bool,
     ) -> Option<(Vec<NodeId>, f32)> {
         self.heap_up.clear();
         self.heap_down.clear();
@@ -58,8 +57,6 @@ impl Dijkstra {
         let mut best_weight = WEIGHT_MAX;
         let mut meeting_node = INVALID_NODE;
 
-        let mut counter: usize = 0;
-
         // now loop over both-heaps
         while !self.heap_up.is_empty() || !self.heap_down.is_empty() {
             while let Some(MinHeapItem { node, weight }) = self.heap_up.pop() {
@@ -72,11 +69,8 @@ impl Dijkstra {
                 }
 
                 // stall on demand optimization
-                if use_stalling {
-                    if self.is_stallable_up(node, weight, &nodes, &edges, &down_offset, &down_index)
-                    {
-                        continue;
-                    }
+                if self.is_stallable_up(node, weight, &nodes, &edges, &down_offset, &down_index) {
+                    continue;
                 }
 
                 // iterate over neighbors
@@ -96,7 +90,6 @@ impl Dijkstra {
                         self.visited_up.set_visited(next.node);
                         self.heap_up.push(next);
                     }
-                    counter += 1;
                 }
 
                 if self.visited_down.is_visited(node)
@@ -117,11 +110,8 @@ impl Dijkstra {
                 }
 
                 // stall on demand optimization
-
-                if use_stalling {
-                    if self.is_stallable_down(node, weight, &nodes, &edges, &up_offset) {
-                        continue;
-                    }
+                if self.is_stallable_down(node, weight, &nodes, &edges, &up_offset) {
+                    continue;
                 }
 
                 // iterate over neighbors
@@ -141,7 +131,6 @@ impl Dijkstra {
                         self.visited_down.set_visited(next.node);
                         self.heap_down.push(next);
                     }
-                    counter += 1;
                 }
 
                 if self.visited_up.is_visited(node) && weight + self.dist_up[node].0 < best_weight {
@@ -155,7 +144,6 @@ impl Dijkstra {
         if meeting_node == INVALID_NODE {
             return None;
         } else {
-            info!("#nodes visited {:?}", counter);
             return self.resolve_path(meeting_node, best_weight, nodes[meeting_node].rank, &edges);
         }
     }
@@ -258,9 +246,8 @@ impl Dijkstra {
             let way: Way = edges[edge];
             if nodes[way.source].rank > nodes[node].rank
                 && self.visited_up.is_visited(node)
-                && way.weight + self.dist_up[node].0 <= weight
+                && way.weight + self.dist_up[way.source].0 <= weight
             {
-                println!("yes");
                 return true;
             }
         }
@@ -279,9 +266,8 @@ impl Dijkstra {
             let way: Way = edges[edge];
             if nodes[way.target].rank > nodes[node].rank
                 && self.visited_down.is_visited(node)
-                && way.weight + self.dist_down[node].0 <= weight
+                && way.weight + self.dist_down[way.target].0 <= weight
             {
-                println!("yes");
                 return true;
             }
         }
