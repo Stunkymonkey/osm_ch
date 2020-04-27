@@ -29,6 +29,10 @@ Cropped OSM-data can be downloaded from [Geofabrik.de](https://download.geofabri
 ### Usage
 `cargo run --release -p osm_ch_pre ./germany-latest.osm.pbf`
 
+### Info
+
+from different grahps the best performance was using two cores (`taskset -c 0,1 cargo run ...`). This may vary between grahps.
+
 ## web
 
 is the webserver which provides the web-interface. (it needs the `*.osm.pbf.fmi`-file from the `pre`-programm.)
