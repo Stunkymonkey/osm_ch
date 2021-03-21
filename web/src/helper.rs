@@ -12,10 +12,10 @@ pub fn get_filename() -> String {
     }
 
     // get filename
-    return std::env::args_os().nth(1).unwrap().into_string().unwrap();
+    std::env::args_os().nth(1).unwrap().into_string().unwrap()
 }
 
 pub fn read_from_disk(filename: String) -> FmiFile {
     let mut reader = BufReader::new(File::open(filename).unwrap());
-    return deserialize_from(&mut reader).unwrap();
+    deserialize_from(&mut reader).unwrap()
 }

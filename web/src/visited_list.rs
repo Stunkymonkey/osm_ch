@@ -16,7 +16,7 @@ impl VisitedList {
     }
 
     pub fn is_visited(&self, node: NodeId) -> bool {
-        return self.nodes[node] == self.visited_flag;
+        self.nodes[node] == self.visited_flag
     }
 
     pub fn set_visited(&mut self, node: NodeId) {

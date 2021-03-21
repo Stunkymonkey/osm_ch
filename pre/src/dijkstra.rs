@@ -25,10 +25,10 @@ impl Dijkstra {
         let reachable = VisitedList::new(amount_nodes);
         let heap = BinaryHeap::new();
         Dijkstra {
-            dist: dist,
-            visited: visited,
-            reachable: reachable,
-            heap: heap,
+            dist,
+            visited,
+            reachable,
+            heap,
             start_node: INVALID_NODE,
             prev_rank: WEIGHT_MAX,
         }
@@ -38,8 +38,8 @@ impl Dijkstra {
         &mut self,
         start: usize,
         end: usize,
-        offset: &Vec<EdgeId>,
-        edges: &Vec<Way>,
+        offset: &[EdgeId],
+        edges: &[Way],
         with_path: bool,
         rank: usize,
     ) -> Option<(Vec<NodeId>, usize)> {
@@ -85,14 +85,14 @@ impl Dijkstra {
                 return self.resolve_path(end, &edges, with_path);
             }
         }
-        return None;
+        None
     }
 
     /// recreate path, of already visited
     fn resolve_path(
         &self,
         end: NodeId,
-        edges: &Vec<Way>,
+        edges: &[Way],
         with_path: bool,
     ) -> Option<(Vec<NodeId>, usize)> {
         let weight = self.dist[end].0;
@@ -106,7 +106,7 @@ impl Dijkstra {
             current_dist = self.dist[edges[prev].source];
         }
         path.reverse();
-        return Some((path, weight));
+        Some((path, weight))
     }
 }
 

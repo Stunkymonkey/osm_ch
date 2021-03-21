@@ -10,9 +10,6 @@ pub struct MinHeapItem {
 // Manually implement Ord so we get a min-heap instead of a max-heap
 impl MinHeapItem {
     pub fn new(node: NodeId, weight: Weight) -> MinHeapItem {
-        if weight != weight {
-            panic!("weight can not be NaN");
-        }
         MinHeapItem { node, weight }
     }
 }

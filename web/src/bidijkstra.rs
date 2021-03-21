@@ -27,15 +27,16 @@ impl Dijkstra {
     }
 
     /// find path from start to end
+    #[allow(clippy::too_many_arguments)]
     pub fn find_path(
         &mut self,
         start: NodeId,
         end: NodeId,
-        nodes: &Vec<Node>,
-        edges: &Vec<Way>,
-        up_offset: &Vec<EdgeId>,
-        down_offset: &Vec<EdgeId>,
-        down_index: &Vec<EdgeId>,
+        nodes: &[Node],
+        edges: &[Way],
+        up_offset: &[EdgeId],
+        down_offset: &[EdgeId],
+        down_index: &[EdgeId],
     ) -> Option<(Vec<NodeId>, f32)> {
         self.heap_up.clear();
         self.heap_down.clear();
@@ -142,9 +143,9 @@ impl Dijkstra {
         }
 
         if meeting_node == INVALID_NODE {
-            return None;
+            None
         } else {
-            return self.resolve_path(meeting_node, best_weight, nodes[meeting_node].rank, &edges);
+            self.resolve_path(meeting_node, best_weight, nodes[meeting_node].rank, &edges)
         }
     }
 
@@ -154,7 +155,7 @@ impl Dijkstra {
         meeting_node: NodeId,
         weight: Weight,
         meeting_rank: Rank,
-        edges: &Vec<Way>,
+        edges: &[Way],
     ) -> Option<(Vec<NodeId>, f32)> {
         assert!(self.visited_up.is_visited(meeting_node));
         assert!(self.visited_down.is_visited(meeting_node));
@@ -173,17 +174,11 @@ impl Dijkstra {
             self.walk_down(down_edge.1.unwrap(), false, &mut path, &edges);
         }
 
-        return Some((path, weight as f32 / DIST_MULTIPLICATOR as f32));
+        Some((path, weight as f32 / DIST_MULTIPLICATOR as f32))
     }
 
     // walk shortcuts from meeting point to end
-    fn walk_down(
-        &self,
-        edge: EdgeId,
-        is_upwards: bool,
-        mut path: &mut Vec<NodeId>,
-        edges: &Vec<Way>,
-    ) {
+    fn walk_down(&self, edge: EdgeId, is_upwards: bool, mut path: &mut Vec<NodeId>, edges: &[Way]) {
         self.resolve_edge(edge, &mut path, is_upwards, &edges);
 
         let current_edge = edges[edge];
@@ -208,7 +203,7 @@ impl Dijkstra {
         edge: EdgeId,
         mut path: &mut Vec<NodeId>,
         is_upwards: bool,
-        edges: &Vec<Way>,
+        edges: &[Way],
     ) {
         let current_edge = edges[edge];
 
@@ -237,14 +232,14 @@ impl Dijkstra {
         &self,
         node: NodeId,
         weight: Weight,
-        nodes: &Vec<Node>,
-        edges: &Vec<Way>,
-        down_offset: &Vec<EdgeId>,
-        down_index: &Vec<EdgeId>,
+        nodes: &[Node],
+        edges: &[Way],
+        down_offset: &[EdgeId],
+        down_index: &[EdgeId],
     ) -> bool {
         for edge in graph_helper::get_down_edge_ids(node, &down_offset, &down_index) {
             let way: Way = edges[edge];
-            if !(nodes[way.source].rank > nodes[node].rank) {
+            if nodes[way.source].rank <= nodes[node].rank {
                 break;
             }
             if self.visited_up.is_visited(way.source)
@@ -253,20 +248,20 @@ impl Dijkstra {
                 return true;
             }
         }
-        return false;
+        false
     }
 
     fn is_stallable_down(
         &self,
         node: NodeId,
         weight: Weight,
-        nodes: &Vec<Node>,
-        edges: &Vec<Way>,
-        up_offset: &Vec<EdgeId>,
+        nodes: &[Node],
+        edges: &[Way],
+        up_offset: &[EdgeId],
     ) -> bool {
         for edge in graph_helper::get_up_edge_ids(node, &up_offset) {
             let way: Way = edges[edge];
-            if !(nodes[way.target].rank > nodes[node].rank) {
+            if nodes[way.target].rank <= nodes[node].rank {
                 break;
             }
             if self.visited_down.is_visited(way.target)
@@ -275,6 +270,6 @@ impl Dijkstra {
                 return true;
             }
         }
-        return false;
+        false
     }
 }

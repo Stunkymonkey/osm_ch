@@ -1,18 +1,19 @@
 use super::*;
 /// amount of neighbors
-pub fn node_degree(node: NodeId, up_offset: &Vec<EdgeId>, down_offset: &Vec<EdgeId>) -> usize {
-    return up_offset[node + 1] - up_offset[node] + down_offset[node + 1] - down_offset[node];
+pub fn node_degree(node: NodeId, up_offset: &[EdgeId], down_offset: &[EdgeId]) -> usize {
+    up_offset[node + 1] - up_offset[node] + down_offset[node + 1] - down_offset[node]
 }
 
 /// calculating the edge-distance heuristic of single node
+#[allow(clippy::too_many_arguments)]
 fn edge_difference(
     node: NodeId,
     mut dijkstra: &mut dijkstra::Dijkstra,
     shortcut_id: &AtomicUsize,
-    edges: &Vec<Way>,
-    up_offset: &Vec<EdgeId>,
-    down_offset: &Vec<EdgeId>,
-    down_index: &Vec<EdgeId>,
+    edges: &[Way],
+    up_offset: &[EdgeId],
+    down_offset: &[EdgeId],
+    down_index: &[EdgeId],
     rank: usize,
 ) -> isize {
     let shortcuts = contraction::calc_shortcuts(
@@ -26,21 +27,22 @@ fn edge_difference(
         rank,
     );
     let shortcut_len = shortcuts.len();
-    return shortcut_len as isize - node_degree(node, &up_offset, &down_offset) as isize;
+    shortcut_len as isize - node_degree(node, &up_offset, &down_offset) as isize
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn calculate_single_heuristic(
     node: NodeId,
     mut dijkstra: &mut dijkstra::Dijkstra,
-    deleted_neighbors: &Vec<Weight>,
+    deleted_neighbors: &[Weight],
     shortcut_id: &AtomicUsize,
-    edges: &Vec<Way>,
-    up_offset: &Vec<EdgeId>,
-    down_offset: &Vec<EdgeId>,
-    down_index: &Vec<EdgeId>,
+    edges: &[Way],
+    up_offset: &[EdgeId],
+    down_offset: &[EdgeId],
+    down_index: &[EdgeId],
     rank: usize,
 ) -> isize {
-    return deleted_neighbors[node] as isize
+    deleted_neighbors[node] as isize
         + edge_difference(
             node,
             &mut dijkstra,
@@ -50,19 +52,20 @@ pub fn calculate_single_heuristic(
             &down_offset,
             &down_index,
             rank,
-        );
+        )
 }
 
 /// calculate heuristic in parallel
+#[allow(clippy::too_many_arguments)]
 pub fn calculate_heuristics(
-    deleted_neighbors: &Vec<Weight>,
+    deleted_neighbors: &[Weight],
     shortcut_id: &AtomicUsize,
     rank: usize,
     amount_nodes: usize,
-    edges: &Vec<Way>,
-    up_offset: &Vec<EdgeId>,
-    down_offset: &Vec<EdgeId>,
-    down_index: &Vec<EdgeId>,
+    edges: &[Way],
+    up_offset: &[EdgeId],
+    down_offset: &[EdgeId],
+    down_index: &[EdgeId],
 ) -> Vec<AtomicIsize> {
     let mut heuristics: Vec<AtomicIsize> = Vec::with_capacity(amount_nodes);
     for _i in 0..amount_nodes {
@@ -97,21 +100,22 @@ pub fn calculate_heuristics(
             }
         });
     }
-    return heuristics;
+    heuristics
 }
 
 /// update all direct neighbors
+#[allow(clippy::too_many_arguments)]
 pub fn update_neighbor_heuristics(
     mut neighbors: Vec<NodeId>,
     heuristics: &mut Vec<AtomicIsize>,
-    deleted_neighbors: &Vec<Weight>,
+    deleted_neighbors: &[Weight],
     shortcut_id: &AtomicUsize,
     rank: usize,
     amount_nodes: usize,
-    edges: &Vec<Way>,
-    up_offset: &Vec<EdgeId>,
-    down_offset: &Vec<EdgeId>,
-    down_index: &Vec<EdgeId>,
+    edges: &[Way],
+    up_offset: &[EdgeId],
+    down_offset: &[EdgeId],
+    down_index: &[EdgeId],
 ) {
     let thread_count = num_cpus::get();
     let chunk_size = (neighbors.len() + thread_count - 1) / thread_count;
@@ -144,16 +148,15 @@ pub fn update_neighbor_heuristics(
 /// get independent set of graph using heuristic
 pub fn get_independent_set(
     remaining_nodes: &BTreeSet<NodeId>,
-    heuristics: &Vec<AtomicIsize>,
+    heuristics: &[AtomicIsize],
     minimas_bool: &mut VisitedList,
-    edges: &Vec<Way>,
-    up_offset: &Vec<EdgeId>,
-    down_offset: &Vec<EdgeId>,
-    down_index: &Vec<NodeId>,
+    edges: &[Way],
+    up_offset: &[EdgeId],
+    down_offset: &[EdgeId],
+    down_index: &[NodeId],
 ) -> Vec<NodeId> {
     let subset: Vec<NodeId>;
-    let mut remaining_nodes_vector: Vec<NodeId> =
-        remaining_nodes.iter().map(|&node| node).collect();
+    let mut remaining_nodes_vector: Vec<NodeId> = remaining_nodes.iter().copied().collect();
     if remaining_nodes.len() > 10_000 {
         // sort remaining_nodes via heuristic
         remaining_nodes_vector.par_sort_by_key(|&node| heuristics[node].load(Ordering::Relaxed));
@@ -183,9 +186,9 @@ pub fn get_independent_set(
     let result: Vec<NodeId> = subset
         .par_iter()
         .filter(|&node| !minimas_bool.is_visited(*node))
-        .map(|node| node.clone())
+        .map(|node| *node)
         .collect();
-    return result;
+    result
 }
 
 #[cfg(test)]

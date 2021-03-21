@@ -46,19 +46,19 @@ pub struct Way {
 
 impl PartialOrd for Way {
     fn partial_cmp(&self, other: &Way) -> Option<Ordering> {
-        return Some(self.cmp(other));
+        Some(self.cmp(other))
     }
 }
 
 impl Ord for Way {
     fn cmp(&self, other: &Way) -> Ordering {
-        return self
+        self
             .source
             .cmp(&other.source)
             .then(self.target.cmp(&other.target))
             .then(self.weight.cmp(&other.weight))
             .then(self.contrated_previous.cmp(&other.contrated_previous))
-            .then(self.contrated_next.cmp(&other.contrated_next));
+            .then(self.contrated_next.cmp(&other.contrated_next))
     }
 }
 
@@ -68,7 +68,7 @@ impl Way {
         Way {
             source: from,
             target: to,
-            weight: weight,
+            weight,
             id: None,
             contrated_previous: None,
             contrated_next: None,
@@ -80,7 +80,7 @@ impl Way {
         Way {
             source: from,
             target: to,
-            weight: weight,
+            weight,
             id: Some(id),
             contrated_previous: None,
             contrated_next: None,
@@ -98,7 +98,7 @@ impl Way {
         Way {
             source: from,
             target: to,
-            weight: weight,
+            weight,
             id: Some(id),
             contrated_previous: Some(previous),
             contrated_next: Some(next),
@@ -126,7 +126,7 @@ impl From<OsmWay> for Way {
             OptimizeBy::Distance => full_edge.distance,
             OptimizeBy::Time => full_edge.distance / speed,
         };
-        return Way::new(full_edge.source, full_edge.target, weight);
+        Way::new(full_edge.source, full_edge.target, weight)
     }
 }
 

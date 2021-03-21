@@ -35,14 +35,14 @@ pub fn generate_offsets_unstable(
     for (i, edge) in edges.iter().enumerate() {
         let start_index = down_offset[edge.target];
         let end_index = down_offset[edge.target + 1];
-        for j in start_index..end_index {
-            if down_index[j] == INVALID_EDGE {
-                down_index[j] = i;
+        for j in down_index.iter_mut().take(end_index).skip(start_index) {
+            if *j == INVALID_EDGE {
+                *j = i;
                 break;
             }
         }
     }
-    return down_index;
+    down_index
 }
 
 pub fn generate_offsets(
@@ -52,7 +52,7 @@ pub fn generate_offsets(
     amount_nodes: usize,
 ) -> Vec<EdgeId> {
     edges.par_sort_unstable();
-    return generate_offsets_unstable(edges, up_offset, down_offset, amount_nodes);
+    generate_offsets_unstable(edges, up_offset, down_offset, amount_nodes)
 }
 
 #[cfg(test)]

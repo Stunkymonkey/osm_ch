@@ -1,16 +1,17 @@
 use super::*;
 use osmpbfreader::{groups, primitive_block_from_blob, OsmPbfReader};
+use std::collections::hash_map::Entry;
 use std::fs::File;
 use std::path::Path;
 
-pub fn get_pbf(filename: &String) -> osmpbfreader::OsmPbfReader<std::fs::File> {
+pub fn get_pbf(filename: &str) -> osmpbfreader::OsmPbfReader<std::fs::File> {
     let path = Path::new(&filename);
     if !path.exists() {
         println!("{} not found", filename);
         std::process::exit(1);
     }
     let r = File::open(&path).unwrap();
-    return OsmPbfReader::new(r);
+    OsmPbfReader::new(r)
 }
 
 /// store all way-IDs that are having the "highway" tag. with speed-limit
@@ -28,10 +29,10 @@ pub fn read_edges(
                     let highway = way.tags.get("highway").unwrap().trim();
                     let mut has_sidewalk: bool = false;
                     if way.tags.contains_key("sidewalk") {
-                        has_sidewalk = match way.tags.get("sidewalk").unwrap().trim() {
-                            "None" | "none" | "No" | "no" => false,
-                            _ => true,
-                        }
+                        has_sidewalk = !matches!(
+                            way.tags.get("sidewalk").unwrap().trim(),
+                            "None" | "none" | "No" | "no"
+                        )
                     }
                     let travel_type = osm_parsing::get_street_type(highway, has_sidewalk);
                     if !is_sub_travel_type(travel_type) {
@@ -50,37 +51,36 @@ pub fn read_edges(
                     // get all node IDs from ways without duplication
                     let mut prev_id: usize;
                     let osm_id = way.nodes[0].0;
-                    if osm_id_mapping.contains_key(&osm_id) {
-                        prev_id = *osm_id_mapping.get(&osm_id).unwrap();
-                    } else {
-                        osm_id_mapping.insert(osm_id, amount_nodes);
-                        prev_id = amount_nodes;
-                        amount_nodes += 1;
-                    }
+                    prev_id = match osm_id_mapping.entry(osm_id) {
+                        Entry::Occupied(o) => *o.into_mut(),
+                        Entry::Vacant(v) => {
+                            amount_nodes += 1;
+                            *v.insert(amount_nodes - 1)
+                        }
+                    };
                     // iterate over nodes and add them
                     for node in way.nodes.iter().skip(1) {
                         let osm_id = node.0;
-                        let id;
-                        if osm_id_mapping.contains_key(&osm_id) {
-                            id = *osm_id_mapping.get(&osm_id).unwrap();
-                        } else {
-                            osm_id_mapping.insert(osm_id, amount_nodes);
-                            id = amount_nodes;
-                            amount_nodes += 1;
-                        }
-                        if (!reverse_dir && one_way) || !one_way {
+                        let id = match osm_id_mapping.entry(osm_id) {
+                            Entry::Occupied(o) => *o.into_mut(),
+                            Entry::Vacant(v) => {
+                                amount_nodes += 1;
+                                *v.insert(amount_nodes - 1)
+                            }
+                        };
+                        if !reverse_dir || !one_way {
                             full_edges.push(OsmWay {
                                 source: prev_id,
                                 target: id,
-                                speed: speed,
+                                speed,
                                 distance: 0,
                             });
                         }
-                        if (reverse_dir && one_way) || !one_way {
+                        if reverse_dir || !one_way {
                             full_edges.push(OsmWay {
                                 source: id,
                                 target: prev_id,
-                                speed: speed,
+                                speed,
                                 distance: 0,
                             });
                         }
@@ -143,24 +143,22 @@ pub fn reset_pbf(pbf: &mut osmpbfreader::OsmPbfReader<std::fs::File>) {
 /// check if the travel type matches the given one
 pub fn is_sub_travel_type(travel_type: TravelType) -> bool {
     match TRAVEL_TYPE {
-        TravelType::Car => match travel_type {
-            TravelType::Car | TravelType::CarBicycle | TravelType::All => return true,
-            _ => return false,
-        },
-        TravelType::Bicycle => match travel_type {
+        TravelType::Car => matches!(
+            travel_type,
+            TravelType::Car | TravelType::CarBicycle | TravelType::All
+        ),
+        TravelType::Bicycle => matches!(
+            travel_type,
             TravelType::CarBicycle
-            | TravelType::Bicycle
-            | TravelType::BicyclePedestrian
-            | TravelType::All => return true,
-            _ => return false,
-        },
-        TravelType::Pedestrian => match travel_type {
-            TravelType::BicyclePedestrian | TravelType::Pedestrian | TravelType::All => {
-                return true
-            }
-            _ => return false,
-        },
-        TravelType::All => return true,
+                | TravelType::Bicycle
+                | TravelType::BicyclePedestrian
+                | TravelType::All
+        ),
+        TravelType::Pedestrian => matches!(
+            travel_type,
+            TravelType::BicyclePedestrian | TravelType::Pedestrian | TravelType::All
+        ),
+        TravelType::All => true,
         _ => panic!("Invalid TravelType is set"),
     }
 }

@@ -2,13 +2,14 @@ use super::*;
 use std::cmp::Reverse;
 
 /// return new generated shortcuts
+#[allow(clippy::too_many_arguments)]
 pub fn calc_shortcuts(
     node: NodeId,
     dijkstra: &mut dijkstra::Dijkstra,
-    edges: &Vec<Way>,
-    up_offset: &Vec<EdgeId>,
-    down_offset: &Vec<EdgeId>,
-    down_index: &Vec<EdgeId>,
+    edges: &[Way],
+    up_offset: &[EdgeId],
+    down_offset: &[EdgeId],
+    down_index: &[EdgeId],
     shortcut_id: &AtomicUsize,
     rank: usize,
 ) -> Vec<Way> {
@@ -57,13 +58,12 @@ pub fn calc_shortcuts(
             dijkstra.find_path(source_node, target_node, up_offset, edges, false, rank);
 
         // create new shortcut where found path is shortest
-        if shortest_path.is_some() {
-            let shortest_path = shortest_path.unwrap();
+        if let Some(shortest_path) = shortest_path {
             if shortest_path.1 >= weight {
                 shortcuts.push(Way {
                     source: source_node,
                     target: target_node,
-                    weight: weight,
+                    weight,
                     id: Some(shortcut_id.fetch_add(1, Ordering::SeqCst)),
                     // do not use edge.index, because it will change during contraction
                     contrated_previous: Some(edges[source_edge].id.unwrap()),
@@ -72,7 +72,7 @@ pub fn calc_shortcuts(
             }
         }
     }
-    return shortcuts;
+    shortcuts
 }
 
 fn remove_redundant_edges(
@@ -93,16 +93,16 @@ fn remove_redundant_edges(
                 && x.weight <= y.weight
                 && y.contrated_previous.is_none()
             {
-                return Some(i + 1);
+                Some(i + 1)
             } else {
-                return None;
+                None
             }
         })
         .collect();
 
     // check if ids is used in any shortcut
     let mut contraction_ids = BTreeSet::new();
-    for edge in edges.into_iter() {
+    for edge in edges.iter_mut() {
         contraction_ids.insert(edge.contrated_previous);
         contraction_ids.insert(edge.contrated_next);
     }
@@ -126,9 +126,9 @@ fn remove_redundant_edges(
 
 fn sort_edges_ranked(
     edges: &mut Vec<Way>,
-    down_offset: &Vec<EdgeId>,
+    down_offset: &[EdgeId],
     down_index: &mut Vec<EdgeId>,
-    nodes: &Vec<Node>,
+    nodes: &[Node],
 ) {
     //sort by source then rank
     edges.par_sort_by(|a, b| {
@@ -142,9 +142,9 @@ fn sort_edges_ranked(
     for (i, edge) in edges.iter().enumerate() {
         let start_index = down_offset[edge.target];
         let end_index = down_offset[edge.target + 1];
-        for j in start_index..end_index {
-            if down_index[j] == INVALID_EDGE {
-                down_index[j] = i;
+        for j in down_index.iter_mut().take(end_index).skip(start_index) {
+            if *j == INVALID_EDGE {
+                *j = i;
                 break;
             }
         }
@@ -288,13 +288,13 @@ pub fn run_contraction(
         let mut neighbors: Vec<NodeId> = minimas
             .par_iter()
             .map(|node| {
-                return graph_helper::get_all_neighbours(
+                graph_helper::get_all_neighbours(
                     *node,
                     &edges,
                     &up_offset,
                     &down_offset,
                     &down_index,
-                );
+                )
             })
             .flatten()
             .collect();

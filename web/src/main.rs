@@ -1,8 +1,8 @@
 #[macro_use]
 extern crate log;
 
-mod constants;
 mod bidijkstra;
+mod constants;
 mod geojson;
 mod graph_helper;
 mod grid;
@@ -11,16 +11,16 @@ mod min_heap;
 mod structs;
 mod visited_list;
 
-use rayon::prelude::*;
 use actix_web::{middleware, web, App, HttpServer};
+use rayon::prelude::*;
 use std::cell::RefCell;
 use std::path::Path;
 use std::time::Instant;
 
-use constants::*;
 use bidijkstra::Dijkstra;
-use structs::*;
+use constants::*;
 use geojson::*;
+use structs::*;
 
 async fn shortest_path(
     request: web::Json<GeoJsonRequest>,
@@ -38,15 +38,35 @@ async fn shortest_path(
     assert_eq!(start_feature.len(), 2);
     assert_eq!(end_feature.len(), 2);
 
-    let start = Node { longitude : start_feature[0], latitude: start_feature[1], rank: INVALID_RANK};
-    let end = Node { longitude : end_feature[0], latitude: end_feature[1], rank: INVALID_RANK};
+    let start = Node {
+        longitude: start_feature[0],
+        latitude: start_feature[1],
+        rank: INVALID_RANK,
+    };
+    let end = Node {
+        longitude: end_feature[0],
+        latitude: end_feature[1],
+        rank: INVALID_RANK,
+    };
     debug!("Start: {},{}", start.latitude, start.longitude);
     debug!("End: {},{}", end.latitude, end.longitude);
 
     // search for clicked points
     let grid_time = Instant::now();
-    let start_id: NodeId = grid::get_closest_point(start, &data.nodes, &data.grid, &data.grid_offset, &data.grid_bounds);
-    let end_id: NodeId = grid::get_closest_point(end, &data.nodes, &data.grid, &data.grid_offset, &data.grid_bounds);
+    let start_id: NodeId = grid::get_closest_point(
+        start,
+        &data.nodes,
+        &data.grid,
+        &data.grid_offset,
+        &data.grid_bounds,
+    );
+    let end_id: NodeId = grid::get_closest_point(
+        end,
+        &data.nodes,
+        &data.grid,
+        &data.grid_offset,
+        &data.grid_bounds,
+    );
     debug!("start_id {}", start_id);
     debug!("end_id {}", end_id);
     info!(" Get node-ID in: {:?}", grid_time.elapsed());
@@ -54,7 +74,15 @@ async fn shortest_path(
     let mut dijkstra = dijkstra_cell.borrow_mut();
 
     let dijkstra_time = Instant::now();
-    let tmp = dijkstra.find_path(start_id, end_id, &data.nodes, &data.edges, &data.up_offset, &data.down_offset, &data.down_index);
+    let tmp = dijkstra.find_path(
+        start_id,
+        end_id,
+        &data.nodes,
+        &data.edges,
+        &data.up_offset,
+        &data.down_offset,
+        &data.down_index,
+    );
     info!("    Dijkstra in: {:?}", dijkstra_time.elapsed());
 
     let result: Vec<(f32, f32)>;
@@ -62,7 +90,10 @@ async fn shortest_path(
     match tmp {
         Some((path, path_cost)) => {
             let nodes = grid::get_coordinates(path, &data.nodes);
-            result = nodes.par_iter().map(|node| (node.longitude, node.latitude)).collect::<Vec<(f32, f32)>>();
+            result = nodes
+                .par_iter()
+                .map(|node| (node.longitude, node.latitude))
+                .collect::<Vec<(f32, f32)>>();
             match data.optimized_by {
                 OptimizeBy::Time => {
                     if path_cost.trunc() >= 1.0 {
@@ -90,11 +121,18 @@ async fn shortest_path(
     return web::Json(GeoJsonRespone {
         // escaping the rust-type command to normal type string
         r#type: "FeatureCollection".to_string(),
-        features: vec![ FeatureResponse { r#type: "Feature".to_string(), geometry: GeometryResponse{r#type: "LineString".to_string(), coordinates: result}, properties: Some(Property { weight: cost }) }],
+        features: vec![FeatureResponse {
+            r#type: "Feature".to_string(),
+            geometry: GeometryResponse {
+                r#type: "LineString".to_string(),
+                coordinates: result,
+            },
+            properties: Some(Property { weight: cost }),
+        }],
     });
 }
 
-#[actix_rt::main]
+#[actix_web::main]
 async fn main() -> std::io::Result<()> {
     std::env::set_var("RUST_LOG", "info");
     env_logger::init();

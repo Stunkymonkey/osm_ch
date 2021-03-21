@@ -3,11 +3,11 @@ use super::*;
 // parse max-speed to valid weight (fallback is highway-tag)
 pub fn parse_speed(max_speed: &str, highway: &str) -> usize {
     match max_speed.parse::<usize>() {
-        Ok(ok) => return ok,
+        Ok(ok) => ok,
         Err(_e) => match resolve_max_speed(max_speed) {
-            Ok(ok) => return ok,
+            Ok(ok) => ok,
             Err(_e) => {
-                return aproximate_speed_limit(highway);
+                aproximate_speed_limit(highway)
             }
         },
     }
@@ -15,7 +15,7 @@ pub fn parse_speed(max_speed: &str, highway: &str) -> usize {
 
 /// resolves the int value from a dirty string that can't be resolved by default parsing
 fn resolve_max_speed(s: &str) -> Result<usize, &str> {
-    return match s {
+    match s {
         "DE:motorway" => Ok(120),
         "DE:rural" | "AT:rural" => Ok(100),
         "DE:urban" | "AT:urban" | "CZ:urban" => Ok(50),
@@ -32,13 +32,13 @@ fn resolve_max_speed(s: &str) -> Result<usize, &str> {
         "5 mph" => Ok(7),
         "DE:walk" | "walk" | "Schrittgeschwindigkeit" => Ok(7),
         _ => Err("none"),
-    };
+    }
 }
 
 /// approximates the speed limit based on given highway type
 // infos from https://wiki.openstreetmap.org/wiki/Key:highway
 fn aproximate_speed_limit(s: &str) -> usize {
-    return match s {
+    match s {
         "motorway" => 120,
         "motorway_link" => 60,
         "trunk" => 100,
@@ -53,7 +53,7 @@ fn aproximate_speed_limit(s: &str) -> usize {
         "living_street" => 7,
         "path" | "walk" | "pedestrian" | "footway" => 4,
         _ => 50,
-    };
+    }
 }
 
 /// get what kind of street it is:
@@ -83,15 +83,15 @@ pub fn get_street_type(s: &str, has_sidewalk: bool) -> TravelType {
             _ => result,
         }
     }
-    return result;
+    result
 }
 
 /// get directions from on_way
 // info from: https://wiki.openstreetmap.org/wiki/Forward_%26_backward,_left_%26_right#Identifying_the_direction_of_a_way
 pub fn parse_one_way(s: &str) -> (bool, bool) {
-    return match s {
+    match s {
         "yes" => (true, false),
         "-1" => (true, true),
         _ => (false, false),
-    };
+    }
 }

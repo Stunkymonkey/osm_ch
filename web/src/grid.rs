@@ -2,7 +2,7 @@ use super::*;
 
 /// get node-ids by brute-force
 #[allow(dead_code)]
-pub fn get_closest_point_stupid(node: Node, nodes: &Vec<Node>) -> usize {
+pub fn get_closest_point_stupid(node: Node, nodes: &[Node]) -> usize {
     let mut tmp_minimum = std::f32::MAX;
     let mut tmp_closeset = INVALID_NODE;
     for (i, n) in nodes.iter().enumerate() {
@@ -12,15 +12,15 @@ pub fn get_closest_point_stupid(node: Node, nodes: &Vec<Node>) -> usize {
             tmp_closeset = i;
         }
     }
-    return tmp_closeset;
+    tmp_closeset
 }
 
 /// get node-ids using grid
 pub fn get_closest_point(
     node: Node,
-    nodes: &Vec<Node>,
-    grid: &Vec<NodeId>,
-    grid_offset: &Vec<GridId>,
+    nodes: &[Node],
+    grid: &[NodeId],
+    grid_offset: &[GridId],
     grid_bounds: &GridBounds,
 ) -> usize {
     let mut minimum = std::f32::MAX;
@@ -35,14 +35,14 @@ pub fn get_closest_point(
             closeset = node_id;
         }
     }
-    return closeset;
+    closeset
 }
 
 /// get close node_ids
 fn get_adjacent_nodes(
     node: Node,
-    grid: &Vec<NodeId>,
-    grid_offset: &Vec<GridId>,
+    grid: &[NodeId],
+    grid_offset: &[GridId],
     grid_bounds: &GridBounds,
 ) -> Vec<NodeId> {
     let grid_id_lat: isize = get_grid_lat(&node, &grid_bounds) as isize;
@@ -56,17 +56,17 @@ fn get_adjacent_nodes(
         // moving in circle around the target
         for i in -grid_dist..(grid_dist) {
             // first iteration add the middle
-            if grid_dist == 1 && i == 0 {
-                if grid_id_lat >= 0
-                    && grid_id_lng >= 0
-                    && grid_id_lat < (LAT_GRID_AMOUNT as isize)
-                    && grid_id_lng < (LNG_GRID_AMOUNT as isize)
-                {
-                    cell_ids.push(calculate_grid_id(
-                        (grid_id_lat) as usize,
-                        (grid_id_lng) as usize,
-                    ));
-                }
+            if grid_dist == 1
+                && i == 0
+                && grid_id_lat >= 0
+                && grid_id_lng >= 0
+                && grid_id_lat < (LAT_GRID_AMOUNT as isize)
+                && grid_id_lng < (LNG_GRID_AMOUNT as isize)
+            {
+                cell_ids.push(calculate_grid_id(
+                    (grid_id_lat) as usize,
+                    (grid_id_lng) as usize,
+                ));
             }
             // north left to right
             if grid_id_lat + i >= 0
@@ -117,7 +117,7 @@ fn get_adjacent_nodes(
         // get all points from cells
         let adjacent_nodes = get_points_from_cells(&cell_ids, &grid, &grid_offset);
 
-        if adjacent_nodes.len() > 0 {
+        if !adjacent_nodes.is_empty() {
             return adjacent_nodes;
         } else {
             // search in outer cells
@@ -128,42 +128,45 @@ fn get_adjacent_nodes(
 
 /// return node-ids from multiple cells
 fn get_points_from_cells(
-    grid_ids: &Vec<GridId>,
-    grid: &Vec<NodeId>,
-    grid_offset: &Vec<GridId>,
+    grid_ids: &[GridId],
+    grid: &[NodeId],
+    grid_offset: &[GridId],
 ) -> Vec<NodeId> {
     let mut result = Vec::<NodeId>::new();
     // sequential is faster, then parallelizing
     for grid_id in grid_ids {
-        for index in grid_offset[*grid_id]..grid_offset[*grid_id + 1] {
-            result.push(grid[index]);
+        for grid_index in grid
+            .iter()
+            .take(grid_offset[*grid_id + 1])
+            .skip(grid_offset[*grid_id])
+        {
+            result.push(*grid_index);
         }
     }
-    return result;
+    result
 }
 
 fn get_grid_lat(node: &Node, grid_bounds: &GridBounds) -> usize {
     let lat_percent =
         (node.latitude - grid_bounds.lat_min) / (grid_bounds.lat_max - grid_bounds.lat_min);
-    return (lat_percent * (LAT_GRID_AMOUNT - 1) as f32) as usize;
+    (lat_percent * (LAT_GRID_AMOUNT - 1) as f32) as usize
 }
 
 fn get_grid_lng(node: &Node, grid_bounds: &GridBounds) -> usize {
     let lng_percent =
         (node.longitude - grid_bounds.lng_min) / (grid_bounds.lng_max - grid_bounds.lng_min);
-    return (lng_percent * (LNG_GRID_AMOUNT - 1) as f32) as usize;
+    (lng_percent * (LNG_GRID_AMOUNT - 1) as f32) as usize
 }
 
 fn calculate_grid_id(lat_index: usize, lng_index: usize) -> GridId {
-    let grid_id = lng_index * LAT_GRID_AMOUNT + lat_index;
-    return grid_id;
+    lng_index * LAT_GRID_AMOUNT + lat_index
 }
 
 #[allow(dead_code)]
 fn get_grid_id(node: &Node, grid_bounds: &GridBounds) -> GridId {
     let lat_index = get_grid_lat(node, grid_bounds);
     let lng_index = get_grid_lng(node, grid_bounds);
-    return calculate_grid_id(lat_index, lng_index);
+    calculate_grid_id(lat_index, lng_index)
 }
 
 /// get distance on earth surface using haversine formula
@@ -181,10 +184,10 @@ fn calc_distance(a: Node, b: Node) -> f32 {
     let a: f32 = ((d_lat / 2.0).sin()) * ((d_lat / 2.0).sin())
         + ((d_lon / 2.0).sin()) * ((d_lon / 2.0).sin()) * (lat1.cos()) * (lat2.cos());
     let c: f32 = 2.0 * ((a.sqrt()).atan2((1.0 - a).sqrt()));
-    return r * c;
+    r * c
 }
 
 /// converts node ids to nodes
-pub fn get_coordinates(path: Vec<NodeId>, nodes: &Vec<Node>) -> Vec<Node> {
+pub fn get_coordinates(path: Vec<NodeId>, nodes: &[Node]) -> Vec<Node> {
     return path.par_iter().map(|x| nodes[*x]).collect::<Vec<Node>>();
 }
