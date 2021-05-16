@@ -54,7 +54,7 @@ impl Dijkstra {
             self.heap.push(MinHeapItem::new(start, 0));
         }
         if self.visited.is_visited(end) {
-            return self.resolve_path(end, &edges, with_path);
+            return Some(self.resolve_path(end, &edges, with_path));
         }
         self.dist[start] = (0, None);
         self.reachable.set_visited(start);
@@ -82,22 +82,17 @@ impl Dijkstra {
             self.visited.set_visited(node);
             // found end
             if node == end {
-                return self.resolve_path(end, &edges, with_path);
+                return Some(self.resolve_path(end, &edges, with_path));
             }
         }
         None
     }
 
     /// recreate path, of already visited
-    fn resolve_path(
-        &self,
-        end: NodeId,
-        edges: &[Way],
-        with_path: bool,
-    ) -> Option<(Vec<NodeId>, usize)> {
+    fn resolve_path(&self, end: NodeId, edges: &[Way], with_path: bool) -> (Vec<NodeId>, usize) {
         let weight = self.dist[end].0;
         if !with_path {
-            return Some((Vec::new(), weight));
+            return (Vec::new(), weight);
         }
         let mut path = Vec::with_capacity(self.dist.len() / 2);
         let mut current_dist = self.dist[end];
@@ -106,7 +101,7 @@ impl Dijkstra {
             current_dist = self.dist[edges[prev].source];
         }
         path.reverse();
-        Some((path, weight))
+        (path, weight)
     }
 }
 

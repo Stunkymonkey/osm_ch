@@ -5,8 +5,8 @@ use visited_list::*;
 
 #[derive(Clone)]
 pub struct Dijkstra {
-    dist_up: Vec<(NodeId, Option<Weight>)>,
-    dist_down: Vec<(NodeId, Option<Weight>)>,
+    dist_up: Vec<(Weight, Option<EdgeId>)>,
+    dist_down: Vec<(Weight, Option<EdgeId>)>,
     visited_up: VisitedList,
     visited_down: VisitedList,
     heap_up: BinaryHeap<MinHeapItem>,
@@ -145,7 +145,7 @@ impl Dijkstra {
         if meeting_node == INVALID_NODE {
             None
         } else {
-            self.resolve_path(meeting_node, best_weight, nodes[meeting_node].rank, &edges)
+            Some(self.resolve_path(meeting_node, best_weight, nodes[meeting_node].rank, &edges))
         }
     }
 
@@ -156,7 +156,7 @@ impl Dijkstra {
         weight: Weight,
         meeting_rank: Rank,
         edges: &[Way],
-    ) -> Option<(Vec<NodeId>, f32)> {
+    ) -> (Vec<NodeId>, f32) {
         assert!(self.visited_up.is_visited(meeting_node));
         assert!(self.visited_down.is_visited(meeting_node));
 
@@ -174,7 +174,7 @@ impl Dijkstra {
             self.walk_down(down_edge.1.unwrap(), false, &mut path, &edges);
         }
 
-        Some((path, weight as f32 / DIST_MULTIPLICATOR as f32))
+        (path, weight as f32 / DIST_MULTIPLICATOR as f32)
     }
 
     // walk shortcuts from meeting point to end

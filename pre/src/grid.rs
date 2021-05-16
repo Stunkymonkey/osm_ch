@@ -30,12 +30,14 @@ fn get_min_max(nodes: &[Node]) -> GridBounds {
     }
 }
 
+#[allow(clippy::suspicious_operation_groupings)]
 fn get_grid_lat(node: &Node, grid_bounds: &GridBounds) -> usize {
     let lat_percent =
         (node.latitude - grid_bounds.lat_min) / (grid_bounds.lat_max - grid_bounds.lat_min);
     (lat_percent * (LAT_GRID_AMOUNT - 1) as f32) as usize
 }
 
+#[allow(clippy::suspicious_operation_groupings)]
 fn get_grid_lng(node: &Node, grid_bounds: &GridBounds) -> usize {
     let lng_percent =
         (node.longitude - grid_bounds.lng_min) / (grid_bounds.lng_max - grid_bounds.lng_min);

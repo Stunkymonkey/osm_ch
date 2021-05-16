@@ -23,12 +23,12 @@ pub fn generate_offsets_unstable(
     down_offset.resize(amount_nodes + 1, 0);
 
     // generate up edges
-    let sources: Vec<EdgeId> = edges.par_iter().map(|x| x.source).rev().collect();
+    let sources: Vec<EdgeId> = edges.iter().map(|x| x.source).rev().collect();
     fill_offset(sources, &mut up_offset);
 
     // generate down edges, but without sorting edges
     // first collect offsets
-    let targets: Vec<EdgeId> = edges.par_iter().map(|x| x.target).rev().collect();
+    let targets: Vec<EdgeId> = edges.iter().map(|x| x.target).rev().collect();
     fill_offset(targets, &mut down_offset);
     let mut down_index = vec![INVALID_EDGE; edges.len()];
     // fill offsets, where not already filled
