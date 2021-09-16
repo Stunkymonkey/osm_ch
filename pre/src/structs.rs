@@ -52,8 +52,7 @@ impl PartialOrd for Way {
 
 impl Ord for Way {
     fn cmp(&self, other: &Way) -> Ordering {
-        self
-            .source
+        self.source
             .cmp(&other.source)
             .then(self.target.cmp(&other.target))
             .then(self.weight.cmp(&other.weight))

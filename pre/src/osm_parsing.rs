@@ -6,9 +6,7 @@ pub fn parse_speed(max_speed: &str, highway: &str) -> usize {
         Ok(ok) => ok,
         Err(_e) => match resolve_max_speed(max_speed) {
             Ok(ok) => ok,
-            Err(_e) => {
-                aproximate_speed_limit(highway)
-            }
+            Err(_e) => aproximate_speed_limit(highway),
         },
     }
 }

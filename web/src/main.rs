@@ -118,7 +118,7 @@ async fn shortest_path(
 
     info!("        Overall: {:?}", total_time.elapsed());
 
-    return web::Json(GeoJsonRespone {
+    web::Json(GeoJsonRespone {
         // escaping the rust-type command to normal type string
         r#type: "FeatureCollection".to_string(),
         features: vec![FeatureResponse {
@@ -129,7 +129,7 @@ async fn shortest_path(
             },
             properties: Some(Property { weight: cost }),
         }],
-    });
+    })
 }
 
 #[actix_web::main]
