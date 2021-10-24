@@ -54,7 +54,7 @@ impl Dijkstra {
             self.heap.push(MinHeapItem::new(start, 0));
         }
         if self.visited.is_visited(end) {
-            return Some(self.resolve_path(end, &edges, with_path));
+            return Some(self.resolve_path(end, edges, with_path));
         }
         self.dist[start] = (0, None);
         self.reachable.set_visited(start);
@@ -68,7 +68,7 @@ impl Dijkstra {
             }
 
             // iterate over neighbors
-            for edge in graph_helper::get_up_edge_ids(node, &offset) {
+            for edge in graph_helper::get_up_edge_ids(node, offset) {
                 let current_way: Way = edges[edge];
                 // calculate new costs
                 let next = MinHeapItem::new(current_way.target, weight + current_way.weight);
@@ -82,7 +82,7 @@ impl Dijkstra {
             self.visited.set_visited(node);
             // found end
             if node == end {
-                return Some(self.resolve_path(end, &edges, with_path));
+                return Some(self.resolve_path(end, edges, with_path));
             }
         }
         None

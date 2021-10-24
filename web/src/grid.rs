@@ -45,8 +45,8 @@ fn get_adjacent_nodes(
     grid_offset: &[GridId],
     grid_bounds: &GridBounds,
 ) -> Vec<NodeId> {
-    let grid_id_lat: isize = get_grid_lat(&node, &grid_bounds) as isize;
-    let grid_id_lng: isize = get_grid_lng(&node, &grid_bounds) as isize;
+    let grid_id_lat: isize = get_grid_lat(&node, grid_bounds) as isize;
+    let grid_id_lng: isize = get_grid_lng(&node, grid_bounds) as isize;
     // println!("grid_id_lat {:?}", grid_id_lat);
     // println!("grid_id_lng {:?}", grid_id_lng);
     let mut grid_dist: isize = 1;
@@ -115,7 +115,7 @@ fn get_adjacent_nodes(
         }
 
         // get all points from cells
-        let adjacent_nodes = get_points_from_cells(&cell_ids, &grid, &grid_offset);
+        let adjacent_nodes = get_points_from_cells(&cell_ids, grid, grid_offset);
 
         if !adjacent_nodes.is_empty() {
             return adjacent_nodes;

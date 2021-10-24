@@ -15,9 +15,8 @@ pub fn calc_shortcuts(
 ) -> Vec<Way> {
     let mut shortcuts = Vec::<Way>::new();
     // get node neighbors
-    let source_edges: Vec<EdgeId> =
-        graph_helper::get_down_edge_ids(node, &down_offset, &down_index);
-    let target_edges: Vec<EdgeId> = graph_helper::get_up_edge_ids(node, &up_offset);
+    let source_edges: Vec<EdgeId> = graph_helper::get_down_edge_ids(node, down_offset, down_index);
+    let target_edges: Vec<EdgeId> = graph_helper::get_up_edge_ids(node, up_offset);
 
     //get minimum costs of one pair
     let mut minimum_neighbor_distances: BTreeMap<(NodeId, NodeId), (Weight, (EdgeId, EdgeId))> =
@@ -213,10 +212,10 @@ pub fn run_contraction(
         &shortcut_id,
         rank,
         amount_nodes,
-        &edges,
-        &up_offset,
-        &down_offset,
-        &down_index,
+        edges,
+        up_offset,
+        down_offset,
+        down_index,
     );
 
     let thread_count = num_cpus::get();
@@ -228,10 +227,10 @@ pub fn run_contraction(
             &remaining_nodes,
             &heuristics,
             &mut minimas_bool,
-            &edges,
-            &up_offset,
-            &down_offset,
-            &down_index,
+            edges,
+            up_offset,
+            down_offset,
+            down_index,
         );
         if remaining_nodes.len() > 100_000 {
             println!(
@@ -255,10 +254,10 @@ pub fn run_contraction(
                             let node_shortcuts = calc_shortcuts(
                                 *node,
                                 &mut dijkstra,
-                                &edges,
-                                &up_offset,
-                                &down_offset,
-                                &down_index,
+                                edges,
+                                up_offset,
+                                down_offset,
+                                down_index,
                                 &shortcut_id,
                                 rank,
                             );
@@ -274,9 +273,7 @@ pub fn run_contraction(
         // collecting all edges to be removed
         let mut connected_edges: Vec<EdgeId> = minimas
             .par_iter()
-            .map(|node| {
-                graph_helper::get_all_edge_ids(*node, &up_offset, &down_offset, &down_index)
-            })
+            .map(|node| graph_helper::get_all_edge_ids(*node, up_offset, down_offset, down_index))
             .flatten()
             .collect();
 
@@ -288,13 +285,7 @@ pub fn run_contraction(
         let mut neighbors: Vec<NodeId> = minimas
             .par_iter()
             .map(|node| {
-                graph_helper::get_all_neighbours(
-                    *node,
-                    &edges,
-                    &up_offset,
-                    &down_offset,
-                    &down_index,
-                )
+                graph_helper::get_all_neighbours(*node, edges, up_offset, down_offset, down_index)
             })
             .flatten()
             .collect();
@@ -310,10 +301,10 @@ pub fn run_contraction(
             &shortcut_id,
             rank,
             amount_nodes,
-            &edges,
-            &up_offset,
-            &down_offset,
-            &down_index,
+            edges,
+            up_offset,
+            down_offset,
+            down_index,
         );
 
         // sort in reverse order for removing from bottom up
@@ -333,7 +324,7 @@ pub fn run_contraction(
         // move I to their Level
         for node in &minimas {
             nodes[*node].rank = rank;
-            remaining_nodes.remove(&node);
+            remaining_nodes.remove(node);
         }
         rank += 1;
         if remaining_nodes.len() > 100_000 {
@@ -371,7 +362,7 @@ pub fn run_contraction(
         offset::generate_offsets(&mut edges, &mut up_offset, &mut down_offset, amount_nodes);
 
     // sort edges from top to down ranks for bidijkstra
-    sort_edges_ranked(&mut edges, &down_offset, &mut down_index, &nodes);
+    sort_edges_ranked(&mut edges, down_offset, &mut down_index, nodes);
 
     // revert the ids back to usual ids
     revert_indices(&mut edges);
@@ -401,13 +392,13 @@ mod tests {
             &mut up_offset,
             &mut down_offset,
             &mut down_index,
-            &shortcut_id,
+            shortcut_id,
             rank,
         );
 
         // get all connected edges of one node
         let mut connected_edges =
-            graph_helper::get_all_edge_ids(node, &up_offset, &down_offset, &down_index);
+            graph_helper::get_all_edge_ids(node, up_offset, down_offset, down_index);
 
         // sort reverse for iterating from bottom up
         connected_edges.sort_by_key(|&edge| Reverse(edge));

@@ -19,15 +19,15 @@ fn edge_difference(
     let shortcuts = contraction::calc_shortcuts(
         node,
         &mut dijkstra,
-        &edges,
-        &up_offset,
-        &down_offset,
-        &down_index,
-        &shortcut_id,
+        edges,
+        up_offset,
+        down_offset,
+        down_index,
+        shortcut_id,
         rank,
     );
     let shortcut_len = shortcuts.len();
-    shortcut_len as isize - node_degree(node, &up_offset, &down_offset) as isize
+    shortcut_len as isize - node_degree(node, up_offset, down_offset) as isize
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -46,11 +46,11 @@ pub fn calculate_single_heuristic(
         + edge_difference(
             node,
             &mut dijkstra,
-            &shortcut_id,
-            &edges,
-            &up_offset,
-            &down_offset,
-            &down_index,
+            shortcut_id,
+            edges,
+            up_offset,
+            down_offset,
+            down_index,
             rank,
         )
 }
@@ -86,12 +86,12 @@ pub fn calculate_heuristics(
                         let new_value = calculate_single_heuristic(
                             *node,
                             &mut dijkstra,
-                            &deleted_neighbors,
-                            &shortcut_id,
-                            &edges,
-                            &up_offset,
-                            &down_offset,
-                            &down_index,
+                            deleted_neighbors,
+                            shortcut_id,
+                            edges,
+                            up_offset,
+                            down_offset,
+                            down_index,
                             rank,
                         );
                         heuristics[*node as usize].store(new_value, Ordering::Relaxed);
@@ -129,12 +129,12 @@ pub fn update_neighbor_heuristics(
                         let new_value = calculate_single_heuristic(
                             *neighbor,
                             &mut dijkstra,
-                            &deleted_neighbors,
-                            &shortcut_id,
-                            &edges,
-                            &up_offset,
-                            &down_offset,
-                            &down_index,
+                            deleted_neighbors,
+                            shortcut_id,
+                            edges,
+                            up_offset,
+                            down_offset,
+                            down_index,
                             rank,
                         );
                         heuristics[*neighbor as usize].store(new_value, Ordering::Relaxed);
@@ -170,7 +170,7 @@ pub fn get_independent_set(
     // mark all neighbors with greater equal value as invalid
     for node in &subset {
         for neighbor in
-            graph_helper::get_all_neighbours(*node, &edges, &up_offset, &down_offset, &down_index)
+            graph_helper::get_all_neighbours(*node, edges, up_offset, down_offset, down_index)
         {
             if !minimas_bool.is_visited(neighbor)
                 && neighbor != *node

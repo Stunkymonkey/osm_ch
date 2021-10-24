@@ -70,12 +70,12 @@ impl Dijkstra {
                 }
 
                 // stall on demand optimization
-                if self.is_stallable_up(node, weight, &nodes, &edges, &down_offset, &down_index) {
+                if self.is_stallable_up(node, weight, nodes, edges, down_offset, down_index) {
                     continue;
                 }
 
                 // iterate over neighbors
-                for edge in graph_helper::get_up_edge_ids(node, &up_offset) {
+                for edge in graph_helper::get_up_edge_ids(node, up_offset) {
                     let current_way: Way = edges[edge];
                     // skip nodes with lower rank
                     if nodes[current_way.target].rank <= nodes[node].rank {
@@ -111,12 +111,12 @@ impl Dijkstra {
                 }
 
                 // stall on demand optimization
-                if self.is_stallable_down(node, weight, &nodes, &edges, &up_offset) {
+                if self.is_stallable_down(node, weight, nodes, edges, up_offset) {
                     continue;
                 }
 
                 // iterate over neighbors
-                for edge in graph_helper::get_down_edge_ids(node, &down_offset, &down_index) {
+                for edge in graph_helper::get_down_edge_ids(node, down_offset, down_index) {
                     let current_way: Way = edges[edge];
                     // skip nodes with lower rank
                     if nodes[current_way.source].rank <= nodes[node].rank {
@@ -145,7 +145,7 @@ impl Dijkstra {
         if meeting_node == INVALID_NODE {
             None
         } else {
-            Some(self.resolve_path(meeting_node, best_weight, nodes[meeting_node].rank, &edges))
+            Some(self.resolve_path(meeting_node, best_weight, nodes[meeting_node].rank, edges))
         }
     }
 
@@ -167,11 +167,11 @@ impl Dijkstra {
 
         path.push(meeting_node);
         if up_edge.1.is_some() {
-            self.walk_down(up_edge.1.unwrap(), true, &mut path, &edges);
+            self.walk_down(up_edge.1.unwrap(), true, &mut path, edges);
             path.reverse();
         }
         if down_edge.1.is_some() {
-            self.walk_down(down_edge.1.unwrap(), false, &mut path, &edges);
+            self.walk_down(down_edge.1.unwrap(), false, &mut path, edges);
         }
 
         (path, weight as f32 / DIST_MULTIPLICATOR as f32)
@@ -179,7 +179,7 @@ impl Dijkstra {
 
     // walk shortcuts from meeting point to end
     fn walk_down(&self, edge: EdgeId, is_upwards: bool, mut path: &mut Vec<NodeId>, edges: &[Way]) {
-        self.resolve_edge(edge, &mut path, is_upwards, &edges);
+        self.resolve_edge(edge, &mut path, is_upwards, edges);
 
         let current_edge = edges[edge];
         let next;
@@ -193,7 +193,7 @@ impl Dijkstra {
             prev = self.dist_down[next];
         }
         if let Some(child) = prev.1 {
-            self.walk_down(child, is_upwards, &mut path, &edges);
+            self.walk_down(child, is_upwards, &mut path, edges);
         }
     }
 
@@ -237,7 +237,7 @@ impl Dijkstra {
         down_offset: &[EdgeId],
         down_index: &[EdgeId],
     ) -> bool {
-        for edge in graph_helper::get_down_edge_ids(node, &down_offset, &down_index) {
+        for edge in graph_helper::get_down_edge_ids(node, down_offset, down_index) {
             let way: Way = edges[edge];
             if nodes[way.source].rank <= nodes[node].rank {
                 break;
@@ -259,7 +259,7 @@ impl Dijkstra {
         edges: &[Way],
         up_offset: &[EdgeId],
     ) -> bool {
-        for edge in graph_helper::get_up_edge_ids(node, &up_offset) {
+        for edge in graph_helper::get_up_edge_ids(node, up_offset) {
             let way: Way = edges[edge];
             if nodes[way.target].rank <= nodes[node].rank {
                 break;

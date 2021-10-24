@@ -31,8 +31,8 @@ pub fn get_edge_ids(
     down_offset: &[EdgeId],
     down_index: &[EdgeId],
 ) -> (Vec<EdgeId>, Vec<EdgeId>) {
-    let outgoing: Vec<NodeId> = get_up_edge_ids(node, &up_offset);
-    let incomming: Vec<NodeId> = get_down_edge_ids(node, &down_offset, &down_index);
+    let outgoing: Vec<NodeId> = get_up_edge_ids(node, up_offset);
+    let incomming: Vec<NodeId> = get_down_edge_ids(node, down_offset, down_index);
     (outgoing, incomming)
 }
 
@@ -44,7 +44,7 @@ pub fn get_all_edge_ids(
     down_offset: &[EdgeId],
     down_index: &[EdgeId],
 ) -> Vec<EdgeId> {
-    let (outgoing, incomming) = get_edge_ids(node, &up_offset, &down_offset, &down_index);
+    let (outgoing, incomming) = get_edge_ids(node, up_offset, down_offset, down_index);
     let mut connected_edges = outgoing;
     connected_edges.extend(&incomming);
     connected_edges
@@ -53,7 +53,7 @@ pub fn get_all_edge_ids(
 /// get all up neighbors from one node
 #[allow(dead_code)]
 pub fn get_up_neighbors(node: NodeId, edges: &[Way], up_offset: &[EdgeId]) -> Vec<EdgeId> {
-    let next = get_up_edge_ids(node, &up_offset);
+    let next = get_up_edge_ids(node, up_offset);
     let mut tmp: Vec<EdgeId> = next.iter().map(|x| edges[*x].target).collect();
     tmp.dedup();
     tmp
@@ -67,7 +67,7 @@ pub fn get_down_neighbors(
     down_offset: &[EdgeId],
     down_index: &[EdgeId],
 ) -> Vec<EdgeId> {
-    let prev = get_down_edge_ids(node, &down_offset, &down_index);
+    let prev = get_down_edge_ids(node, down_offset, down_index);
     let mut tmp: Vec<EdgeId> = prev.iter().map(|x| edges[*x].source).collect();
     tmp.par_sort_unstable();
     tmp.dedup();
@@ -83,8 +83,8 @@ pub fn get_neighbours(
     down_offset: &[EdgeId],
     down_index: &[EdgeId],
 ) -> (Vec<usize>, Vec<usize>) {
-    let targets: Vec<NodeId> = get_up_neighbors(node, &edges, &up_offset);
-    let sources: Vec<NodeId> = get_down_neighbors(node, &edges, &down_offset, &down_index);
+    let targets: Vec<NodeId> = get_up_neighbors(node, edges, up_offset);
+    let sources: Vec<NodeId> = get_down_neighbors(node, edges, down_offset, down_index);
     (targets, sources)
 }
 
