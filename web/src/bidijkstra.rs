@@ -182,15 +182,12 @@ impl Dijkstra {
         self.resolve_edge(edge, &mut path, is_upwards, edges);
 
         let current_edge = edges[edge];
-        let next;
         let prev;
 
         if is_upwards {
-            next = current_edge.source;
-            prev = self.dist_up[next];
+            prev = self.dist_up[current_edge.source];
         } else {
-            next = current_edge.target;
-            prev = self.dist_down[next];
+            prev = self.dist_down[current_edge.target];
         }
         if let Some(child) = prev.1 {
             self.walk_down(child, is_upwards, &mut path, edges);
@@ -205,26 +202,17 @@ impl Dijkstra {
         is_upwards: bool,
         edges: &[Way],
     ) {
-        let current_edge = edges[edge];
-
-        if is_upwards {
-            if let Some(next) = current_edge.contrated_next {
-                self.resolve_edge(next, &mut path, is_upwards, &edges);
+        match (&edges[edge].contrated_previous, &edges[edge].contrated_next) {
+            (Some(previous), Some(next)) => {
+                if is_upwards {
+                    self.resolve_edge(*next, &mut path, is_upwards, edges);
+                    self.resolve_edge(*previous, &mut path, is_upwards, edges);
+                } else {
+                    self.resolve_edge(*previous, &mut path, is_upwards, edges);
+                    self.resolve_edge(*next, &mut path, is_upwards, edges);
+                }
             }
-            if let Some(previous) = current_edge.contrated_previous {
-                self.resolve_edge(previous, &mut path, is_upwards, &edges);
-            } else {
-                path.push(current_edge.source);
-            }
-        } else {
-            if let Some(previous) = current_edge.contrated_previous {
-                self.resolve_edge(previous, &mut path, is_upwards, &edges);
-            }
-            if let Some(next) = current_edge.contrated_next {
-                self.resolve_edge(next, &mut path, is_upwards, &edges);
-            } else {
-                path.push(current_edge.target);
-            }
+            _ => path.push(edge),
         }
     }
 
