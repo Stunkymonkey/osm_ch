@@ -966,9 +966,9 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "libc"
-version = "0.2.105"
+version = "0.2.106"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "869d572136620d55835903746bcb5cdc54cb2851fd0aeec53220b4bb65ef3013"
+checksum = "a60553f9a9e039a333b4e9b20573b9e9b9c0bb3a11e201ccc48ef4283456d673"
 
 [[package]]
 name = "linked-hash-map"
@@ -1162,9 +1162,9 @@ dependencies = [
 
 [[package]]
 name = "osmpbfreader"
-version = "0.15.0"
+version = "0.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f965413d4f15fe4cd9ef3ca8eda7d60d14a6bf20db0d4fe13d42c19f14b2501b"
+checksum = "350c902b84c57c1d0fa657bfbf380cb1cdcc7352732aa8763ec4bbed4a474a8b"
 dependencies = [
  "byteorder",
  "flat_map",
@@ -1290,9 +1290,9 @@ checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 
 [[package]]
 name = "ppv-lite86"
-version = "0.2.14"
+version = "0.2.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c3ca011bd0129ff4ae15cd04c4eef202cadf6c51c21e47aba319b4e0501db741"
+checksum = "ed0cfbc8191465bed66e1718596ee0b0b35d5ee1f41c5df2189d0fe8bde535ba"
 
 [[package]]
 name = "proc-macro-hack"
@@ -1308,33 +1308,33 @@ checksum = "bc881b2c22681370c6a780e47af9840ef841837bc98118431d4e1868bd0c1086"
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.30"
+version = "1.0.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "edc3358ebc67bc8b7fa0c007f945b0b18226f78437d61bec735a9eb96b61ee70"
+checksum = "ba508cc11742c0dc5c1659771673afbab7a0efab23aa17e854cbab0837ed0b43"
 dependencies = [
  "unicode-xid",
 ]
 
 [[package]]
 name = "protobuf"
-version = "2.25.1"
+version = "2.25.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "23129d50f2c9355ced935fce8a08bd706ee2e7ce2b3b33bf61dace0e379ac63a"
+checksum = "47c327e191621a2158159df97cdbc2e7074bb4e940275e35abf38eb3d2595754"
 
 [[package]]
 name = "protobuf-codegen"
-version = "2.25.1"
+version = "2.25.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4ba98ce0dadaa6de1e7f1b6d82a0a73b03e0c049169a167c919d906b0875026c"
+checksum = "3df8c98c08bd4d6653c2dbae00bd68c1d1d82a360265a5b0bbc73d48c63cb853"
 dependencies = [
  "protobuf",
 ]
 
 [[package]]
 name = "protobuf-codegen-pure"
-version = "2.25.1"
+version = "2.25.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a2bab16316ed0c5794a06c399af55a3ca7b93496cb35cb4c15bcc8f5d824f2b7"
+checksum = "394a73e2a819405364df8d30042c0f1174737a763e0170497ec9d36f8a2ea8f7"
 dependencies = [
  "protobuf",
  "protobuf-codegen",
@@ -1495,9 +1495,9 @@ checksum = "d29ab0c6d3fc0ee92fe66e2d99f700eab17a8d57d1c1d3b748380fb20baa78cd"
 
 [[package]]
 name = "self_cell"
-version = "0.9.2"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe629daf70fdc14087b47c37c0700a2b43d4fcc0cb12c98b7239dffac9a1659d"
+checksum = "55267dd945ff7d9388dd56c5a6a97477bdb6f2584be5ba45fdde7207b7cac3a6"
 
 [[package]]
 name = "semver"
@@ -1702,9 +1702,9 @@ checksum = "213701ba3370744dcd1a12960caa4843b3d68b4d1c0a5d575e0d65b2ee9d16c0"
 
 [[package]]
 name = "syn"
-version = "1.0.80"
+version = "1.0.81"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d010a1623fbd906d51d650a9916aaefc05ffa0e4053ff7fe601167f3e715d194"
+checksum = "f2afee18b8beb5a596ecb4a2dce128c719b4ba399d34126b9e4396e3f9860966"
 dependencies = [
  "proc-macro2",
  "quote",
