@@ -212,7 +212,13 @@ impl Dijkstra {
                     self.resolve_edge(*next, &mut path, is_upwards, edges);
                 }
             }
-            _ => path.push(edge),
+            _ => {
+                if is_upwards {
+                    path.push(edges[edge].source)
+                } else {
+                    path.push(edges[edge].target)
+                }
+            }
         }
     }
 
