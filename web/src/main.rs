@@ -157,9 +157,9 @@ async fn main() -> std::io::Result<()> {
         let dijkstra = RefCell::new(Dijkstra::new(amount_nodes));
         App::new()
             .wrap(middleware::Logger::default())
-            .data(web::JsonConfig::default().limit(1024))
+            .app_data(web::JsonConfig::default().limit(1024))
             .app_data(data_ref.clone())
-            .data(dijkstra)
+            .app_data(dijkstra)
             .service(web::resource("/dijkstra").route(web::post().to(shortest_path)))
             .service(actix_files::Files::new("/", "./html/").index_file("index.html"))
     })
