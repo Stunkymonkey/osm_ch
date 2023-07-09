@@ -8,7 +8,7 @@ pub fn node_degree(node: NodeId, up_offset: &[EdgeId], down_offset: &[EdgeId]) -
 #[allow(clippy::too_many_arguments)]
 fn edge_difference(
     node: NodeId,
-    mut dijkstra: &mut dijkstra::Dijkstra,
+    dijkstra: &mut dijkstra::Dijkstra,
     shortcut_id: &AtomicUsize,
     edges: &[Way],
     up_offset: &[EdgeId],
@@ -18,7 +18,7 @@ fn edge_difference(
 ) -> isize {
     let shortcuts = contraction::calc_shortcuts(
         node,
-        &mut dijkstra,
+        dijkstra,
         edges,
         up_offset,
         down_offset,
@@ -33,7 +33,7 @@ fn edge_difference(
 #[allow(clippy::too_many_arguments)]
 pub fn calculate_single_heuristic(
     node: NodeId,
-    mut dijkstra: &mut dijkstra::Dijkstra,
+    dijkstra: &mut dijkstra::Dijkstra,
     deleted_neighbors: &[Weight],
     shortcut_id: &AtomicUsize,
     edges: &[Way],
@@ -45,7 +45,7 @@ pub fn calculate_single_heuristic(
     deleted_neighbors[node] as isize
         + edge_difference(
             node,
-            &mut dijkstra,
+            dijkstra,
             shortcut_id,
             edges,
             up_offset,
@@ -72,7 +72,7 @@ pub fn calculate_heuristics(
         heuristics.push(AtomicIsize::new(0));
     }
 
-    let mut nodes: Vec<NodeId> = (0..amount_nodes).into_iter().collect();
+    let mut nodes: Vec<NodeId> = (0..amount_nodes).collect();
 
     let thread_count = num_cpus::get();
     let chunk_size = (amount_nodes + thread_count - 1) / thread_count;
@@ -94,7 +94,7 @@ pub fn calculate_heuristics(
                             down_index,
                             rank,
                         );
-                        heuristics[*node as usize].store(new_value, Ordering::Relaxed);
+                        heuristics[*node].store(new_value, Ordering::Relaxed);
                     }
                 });
             }
@@ -107,7 +107,7 @@ pub fn calculate_heuristics(
 #[allow(clippy::too_many_arguments)]
 pub fn update_neighbor_heuristics(
     mut neighbors: Vec<NodeId>,
-    heuristics: &mut Vec<AtomicIsize>,
+    heuristics: &mut [AtomicIsize],
     deleted_neighbors: &[Weight],
     shortcut_id: &AtomicUsize,
     rank: usize,
@@ -137,7 +137,7 @@ pub fn update_neighbor_heuristics(
                             down_index,
                             rank,
                         );
-                        heuristics[*neighbor as usize].store(new_value, Ordering::Relaxed);
+                        heuristics[*neighbor].store(new_value, Ordering::Relaxed);
                     }
                 });
             }
@@ -155,16 +155,15 @@ pub fn get_independent_set(
     down_offset: &[EdgeId],
     down_index: &[NodeId],
 ) -> Vec<NodeId> {
-    let subset: Vec<NodeId>;
     let mut remaining_nodes_vector: Vec<NodeId> = remaining_nodes.iter().copied().collect();
-    if remaining_nodes.len() > 10_000 {
+    let subset: Vec<NodeId> = if remaining_nodes.len() > 10_000 {
         // sort remaining_nodes via heuristic
         remaining_nodes_vector.par_sort_by_key(|&node| heuristics[node].load(Ordering::Relaxed));
         // take lower 1/4
-        subset = (&remaining_nodes_vector[0..remaining_nodes_vector.len() / 4]).to_vec();
+        (remaining_nodes_vector[0..remaining_nodes_vector.len() / 4]).to_vec()
     } else {
-        subset = remaining_nodes_vector;
-    }
+        remaining_nodes_vector
+    };
 
     minimas_bool.unvisit_all();
     // mark all neighbors with greater equal value as invalid

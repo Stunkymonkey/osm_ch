@@ -36,7 +36,7 @@ pub fn calc_shortcuts(
             let pair = (source_node, target_node);
             let lower_edges = (*source_edge, *target_edge);
             if let Some(old_minima) = minimum_neighbor_distances.get_mut(&pair) {
-                if (*old_minima).0 > weight {
+                if (old_minima).0 > weight {
                     *old_minima = (weight, lower_edges);
                 }
             } else {
@@ -75,9 +75,9 @@ pub fn calc_shortcuts(
 }
 
 fn remove_redundant_edges(
-    mut edges: &mut Vec<Way>,
-    mut up_offset: &mut Vec<EdgeId>,
-    mut down_offset: &mut Vec<EdgeId>,
+    edges: &mut Vec<Way>,
+    up_offset: &mut Vec<EdgeId>,
+    down_offset: &mut Vec<EdgeId>,
     down_index: &mut Vec<EdgeId>,
     amount_nodes: usize,
 ) {
@@ -119,8 +119,7 @@ fn remove_redundant_edges(
     }
 
     // update graph
-    *down_index =
-        offset::generate_offsets(&mut edges, &mut up_offset, &mut down_offset, amount_nodes);
+    *down_index = offset::generate_offsets(edges, up_offset, down_offset, amount_nodes);
 }
 
 fn sort_edges_ranked(
@@ -180,10 +179,10 @@ fn revert_indices(edges: &mut Vec<Way>) {
 /// run full contraction
 pub fn run_contraction(
     nodes: &mut Vec<Node>,
-    mut edges: &mut Vec<Way>,
-    mut up_offset: &mut Vec<EdgeId>,
-    mut down_offset: &mut Vec<EdgeId>,
-    mut down_index: &mut Vec<EdgeId>,
+    edges: &mut Vec<Way>,
+    up_offset: &mut Vec<EdgeId>,
+    down_offset: &mut Vec<EdgeId>,
+    down_index: &mut Vec<EdgeId>,
 ) {
     let amount_nodes: usize = nodes.len();
     // for keeping track of new created edge_ids
@@ -318,8 +317,7 @@ pub fn run_contraction(
         edges.par_extend(&shortcuts);
 
         // recalc edge-indices
-        *down_index =
-            offset::generate_offsets(&mut edges, &mut up_offset, &mut down_offset, amount_nodes);
+        *down_index = offset::generate_offsets(edges, up_offset, down_offset, amount_nodes);
 
         // move I to their Level
         for node in &minimas {
@@ -346,9 +344,9 @@ pub fn run_contraction(
     // remove never used edges
     remove_redundant_edges(
         &mut resulting_edges,
-        &mut up_offset,
-        &mut down_offset,
-        &mut down_index,
+        up_offset,
+        down_offset,
+        down_index,
         amount_nodes,
     );
 
@@ -358,14 +356,13 @@ pub fn run_contraction(
 
     *edges = resulting_edges;
     // and calculate the offsets
-    *down_index =
-        offset::generate_offsets(&mut edges, &mut up_offset, &mut down_offset, amount_nodes);
+    *down_index = offset::generate_offsets(edges, up_offset, down_offset, amount_nodes);
 
     // sort edges from top to down ranks for bidijkstra
-    sort_edges_ranked(&mut edges, down_offset, &mut down_index, nodes);
+    sort_edges_ranked(edges, down_offset, down_index, nodes);
 
     // revert the ids back to usual ids
-    revert_indices(&mut edges);
+    revert_indices(edges);
 }
 
 #[cfg(test)]

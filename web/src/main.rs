@@ -134,7 +134,9 @@ async fn shortest_path(
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    std::env::set_var("RUST_LOG", "info");
+    //std::env::set_var("RUST_LOG", "debug");
+    std::env::set_var("RUST_LOG", "actix_web=trace");
+    std::env::set_var("RUST_BACKTRACE", "1");
     env_logger::init();
 
     // read file
@@ -154,7 +156,7 @@ async fn main() -> std::io::Result<()> {
     println!("Starting server at: http://localhost:8080");
     HttpServer::new(move || {
         // initialize thread-local dijkstra
-        let dijkstra = RefCell::new(Dijkstra::new(amount_nodes));
+        let dijkstra = web::Data::new(RefCell::new(Dijkstra::new(amount_nodes)));
         App::new()
             .wrap(middleware::Logger::default())
             .app_data(web::JsonConfig::default().limit(1024))

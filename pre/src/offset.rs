@@ -13,8 +13,8 @@ fn fill_offset(edges: Vec<NodeId>, offset: &mut Vec<usize>) {
 /// make sure edges are already sorted!!
 pub fn generate_offsets_unstable(
     edges: &mut Vec<Way>,
-    mut up_offset: &mut Vec<EdgeId>,
-    mut down_offset: &mut Vec<EdgeId>,
+    up_offset: &mut Vec<EdgeId>,
+    down_offset: &mut Vec<EdgeId>,
     amount_nodes: usize,
 ) -> Vec<EdgeId> {
     up_offset.clear();
@@ -24,12 +24,12 @@ pub fn generate_offsets_unstable(
 
     // generate up edges
     let sources: Vec<EdgeId> = edges.iter().map(|x| x.source).rev().collect();
-    fill_offset(sources, &mut up_offset);
+    fill_offset(sources, up_offset);
 
     // generate down edges, but without sorting edges
     // first collect offsets
     let targets: Vec<EdgeId> = edges.iter().map(|x| x.target).rev().collect();
-    fill_offset(targets, &mut down_offset);
+    fill_offset(targets, down_offset);
     let mut down_index = vec![INVALID_EDGE; edges.len()];
     // fill offsets, where not already filled
     for (i, edge) in edges.iter().enumerate() {

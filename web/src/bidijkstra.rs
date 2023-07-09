@@ -178,47 +178,18 @@ impl Dijkstra {
     }
 
     // walk shortcuts from meeting point to end
-    fn walk_down(&self, edge: EdgeId, is_upwards: bool, mut path: &mut Vec<NodeId>, edges: &[Way]) {
-        self.resolve_edge(edge, &mut path, is_upwards, edges);
+    fn walk_down(&self, edge: EdgeId, is_upwards: bool, path: &mut Vec<NodeId>, edges: &[Way]) {
+        resolve_edge(edge, path, is_upwards, edges);
 
         let current_edge = edges[edge];
-        let prev;
 
-        if is_upwards {
-            prev = self.dist_up[current_edge.source];
+        let prev = if is_upwards {
+            self.dist_up[current_edge.source]
         } else {
-            prev = self.dist_down[current_edge.target];
-        }
+            self.dist_down[current_edge.target]
+        };
         if let Some(child) = prev.1 {
-            self.walk_down(child, is_upwards, &mut path, edges);
-        }
-    }
-
-    /// resolve shortcuts to original edges
-    fn resolve_edge(
-        &self,
-        edge: EdgeId,
-        mut path: &mut Vec<NodeId>,
-        is_upwards: bool,
-        edges: &[Way],
-    ) {
-        match (&edges[edge].contrated_previous, &edges[edge].contrated_next) {
-            (Some(previous), Some(next)) => {
-                if is_upwards {
-                    self.resolve_edge(*next, &mut path, is_upwards, edges);
-                    self.resolve_edge(*previous, &mut path, is_upwards, edges);
-                } else {
-                    self.resolve_edge(*previous, &mut path, is_upwards, edges);
-                    self.resolve_edge(*next, &mut path, is_upwards, edges);
-                }
-            }
-            _ => {
-                if is_upwards {
-                    path.push(edges[edge].source)
-                } else {
-                    path.push(edges[edge].target)
-                }
-            }
+            self.walk_down(child, is_upwards, path, edges);
         }
     }
 
@@ -265,5 +236,33 @@ impl Dijkstra {
             }
         }
         false
+    }
+}
+
+/// resolve shortcuts to original edges
+fn resolve_edge(
+    // &self,
+    edge: EdgeId,
+    path: &mut Vec<NodeId>,
+    is_upwards: bool,
+    edges: &[Way],
+) {
+    match (&edges[edge].contrated_previous, &edges[edge].contrated_next) {
+        (Some(previous), Some(next)) => {
+            if is_upwards {
+                resolve_edge(*next, path, is_upwards, edges);
+                resolve_edge(*previous, path, is_upwards, edges);
+            } else {
+                resolve_edge(*previous, path, is_upwards, edges);
+                resolve_edge(*next, path, is_upwards, edges);
+            }
+        }
+        _ => {
+            if is_upwards {
+                path.push(edges[edge].source)
+            } else {
+                path.push(edges[edge].target)
+            }
+        }
     }
 }

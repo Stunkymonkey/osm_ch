@@ -10,7 +10,7 @@ pub fn get_pbf(filename: &str) -> osmpbfreader::OsmPbfReader<std::fs::File> {
         println!("{} not found", filename);
         std::process::exit(1);
     }
-    let r = File::open(&path).unwrap();
+    let r = File::open(path).unwrap();
     OsmPbfReader::new(r)
 }
 
