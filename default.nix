@@ -4,5 +4,10 @@
     nativeBuildInputs = with pkgs.buildPackages; [
       brotli
       pkg-config
+      # rust
+      cargo
+      cargo-outdated
+      rustfmt
+      clippy
     ];
 }
