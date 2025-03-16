@@ -23,7 +23,7 @@ pub fn read_edges(
     let mut amount_nodes = 0;
     for block in pbf.blobs().map(|b| primitive_block_from_blob(&b.unwrap())) {
         let block = block.unwrap();
-        for group in block.get_primitivegroup().iter() {
+        for group in block.primitivegroup.iter() {
             for way in groups::ways(group, &block) {
                 if way.tags.contains_key("highway") {
                     let highway = way.tags.get("highway").unwrap().trim();
@@ -112,7 +112,7 @@ pub fn read_ways(
     );
     for block in pbf.blobs().map(|b| primitive_block_from_blob(&b.unwrap())) {
         let block = block.unwrap();
-        for group in block.get_primitivegroup().iter() {
+        for group in block.primitivegroup.iter() {
             for node in groups::dense_nodes(group, &block) {
                 // check if node in osm_id_mapping
                 match osm_id_mapping.get(&node.id.0) {
